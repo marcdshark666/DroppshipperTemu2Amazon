@@ -1,0 +1,68 @@
+{
+  "last_updated": "2026-04-06T20:00:00+02:00",
+  "source": "Python BSR & Pricing Scraper (AutoDS Core Integration)",
+  "kpi": {
+    "daily_profit": 142.50,
+    "daily_profit_trend": 12,
+    "weekly_sales": 1204,
+    "weekly_sales_trend": 5,
+    "yearly_profit": 18430.00
+  },
+  "sales_data": {
+    "day": { "labels": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"], "data": [12, 19, 3, 5, 2, 3, 10] },
+    "week": { "labels": ["Mån", "Tis", "Ons", "Tors", "Fre", "Lör", "Sön"], "data": [65, 59, 80, 81, 56, 55, 40] },
+    "month": { "labels": ["Vecka 1", "Vecka 2", "Vecka 3", "Vecka 4"], "data": [320, 250, 410, 390] }
+  },
+  "trending_products": [
+    {
+      "rank": 1,
+      "title": "Smart Posture Corrector (Back Brace)",
+      "image": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=150",
+      "hype": "Extreme",
+      "temu_price": 3.86,
+      "amazon_price": 24.99,
+      "source_temu": "https://temu.com",
+      "source_amazon": "https://amazon.com"
+    },
+    {
+      "rank": 2,
+      "title": "Ice Face Roller Skincare",
+      "image": "https://images.unsplash.com/photo-1615397323865-65fb5da2abfb?auto=format&fit=crop&q=80&w=150",
+      "hype": "Extreme",
+      "temu_price": 1.20,
+      "amazon_price": 14.99,
+      "source_temu": "https://temu.com",
+      "source_amazon": "https://amazon.com"
+    },
+    {
+      "rank": 3,
+      "title": "Minimalist LED Desk Lamp",
+      "image": "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&q=80&w=150",
+      "hype": "High",
+      "temu_price": 8.50,
+      "amazon_price": 39.99,
+      "source_temu": "https://temu.com",
+      "source_amazon": "https://amazon.com"
+    },
+    {
+      "rank": 4,
+      "title": "Ergonomic Vertical Mouse",
+      "image": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&q=80&w=150",
+      "hype": "High",
+      "temu_price": 4.20,
+      "amazon_price": 29.99,
+      "source_temu": "https://temu.com",
+      "source_amazon": "https://amazon.com"
+    },
+    {
+      "rank": 5,
+      "title": "Portable Blender Cup",
+      "image": "https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&q=80&w=150",
+      "hype": "Men",
+      "temu_price": 9.00,
+      "amazon_price": 34.99,
+      "source_temu": "https://temu.com",
+      "source_amazon": "https://amazon.com"
+    }
+  ]
+}

@@ -19,64 +19,75 @@
             <div class="logo">
                 <i class="fa-solid fa-chart-line"></i> D-Monitor
             </div>
-            <nav>
-                <a href="#" class="active"><i class="fa-solid fa-house"></i> Översikt</a>
-                <a href="#"><i class="fa-solid fa-fire"></i> Trendande</a>
-                <a href="#"><i class="fa-solid fa-money-bill-trend-up"></i> Vinster</a>
-                <a href="#"><i class="fa-solid fa-gear"></i> Inställningar</a>
+            <nav id="nav-menu">
+                <a href="#" data-target="view-overview" class="active"><i class="fa-solid fa-house"></i> Översikt</a>
+                <a href="#" data-target="view-trending"><i class="fa-solid fa-fire"></i> Trendande Live</a>
+                <a href="#" data-target="view-automation"><i class="fa-solid fa-robot"></i> Automation Setup</a>
             </nav>
+            <div class="sidebar-footer">
+                <p class="status-indicator"><span class="dot green"></span> System Online</p>
+                <p class="last-updated" id="sidebar-updated-time">Hämtar data...</p>
+            </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
             <header class="topbar glass">
-                <h1>Översikt - Profit & Trender</h1>
+                <h1 id="page-title">Översikt - Profit & Trender</h1>
                 <div class="user-profile">
                     <span>Välkommen, Marc</span>
                     <i class="fa-solid fa-user-astronaut"></i>
                 </div>
             </header>
 
-            <div class="kpi-cards">
-                <div class="kpi-card glass">
-                    <h3>Dagens Vinst</h3>
-                    <p class="amount" id="daily-profit">$0</p>
-                    <span class="trend positive"><i class="fa-solid fa-arrow-up"></i> 12% vs igår</span>
-                </div>
-                <div class="kpi-card glass">
-                    <h3>Veckans Försäljning</h3>
-                    <p class="amount" id="weekly-sales">0</p>
-                    <span class="trend positive"><i class="fa-solid fa-arrow-up"></i> 5% vs förra veckan</span>
-                </div>
-                <div class="kpi-card glass">
-                    <h3>Totalt Året (2026)</h3>
-                    <p class="amount" id="yearly-profit">$0</p>
-                    <span class="trend neutral"><i class="fa-solid fa-minus"></i> On track</span>
-                </div>
-            </div>
-
-            <div class="chart-section">
-                <div class="chart-container glass main-chart">
-                    <div class="chart-header">
-                        <h2>Försäljning & Vinst (Månad)</h2>
-                        <div class="chart-controls">
-                            <button class="btn-time" onclick="updateChart('day')">Dag</button>
-                            <button class="btn-time" onclick="updateChart('week')">Vecka</button>
-                            <button class="btn-time active" onclick="updateChart('month')">Månad</button>
-                        </div>
+            <!-- VIEW: ÖVERSIKT -->
+            <div id="view-overview" class="view active">
+                <div class="kpi-cards">
+                    <div class="kpi-card glass">
+                        <h3>Dagens Vinst</h3>
+                        <p class="amount" id="daily-profit">$0</p>
+                        <span class="trend" id="daily-trend">Laddar...</span>
                     </div>
-                    <canvas id="salesChart"></canvas>
+                    <div class="kpi-card glass">
+                        <h3>Veckans Försäljning</h3>
+                        <p class="amount" id="weekly-sales">0</p>
+                        <span class="trend" id="weekly-trend">Laddar...</span>
+                    </div>
+                    <div class="kpi-card glass">
+                        <h3>Totalt Året (2026)</h3>
+                        <p class="amount" id="yearly-profit">$0</p>
+                    </div>
+                </div>
+
+                <div class="chart-section">
+                    <div class="chart-container glass main-chart">
+                        <div class="chart-header">
+                            <h2>Försäljning & Vinst</h2>
+                            <div class="chart-controls">
+                                <button class="btn-time" onclick="updateChart('day')">Dag</button>
+                                <button class="btn-time" onclick="updateChart('week')">Vecka</button>
+                                <button class="btn-time active" onclick="updateChart('month')">Månad</button>
+                            </div>
+                        </div>
+                        <canvas id="salesChart"></canvas>
+                    </div>
                 </div>
             </div>
 
-            <div class="trending-section">
+            <!-- VIEW: TRENDANDE PRODUKTER -->
+            <div id="view-trending" class="view">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-fire"></i> Live Dataskrapade Produkter</h2>
+                    <p class="data-source-info">Datakälla: <span id="data-source-text">Laddar...</span> | Uppdaterades: <strong id="data-updated-text">...</strong></p>
+                </div>
+                
                 <div class="trending-table-container glass">
-                    <h2><i class="fa-solid fa-fire"></i> Topp 10 Trendande Produkter (April 2026)</h2>
                     <table class="trending-table" id="trending-table">
                         <thead>
                             <tr>
+                                <th>Bild</th>
                                 <th>Rank</th>
-                                <th>Plattformsvolym (Hype)</th>
+                                <th>Plattformsvolym</th>
                                 <th>Produktnamn</th>
                                 <th>Inköp (Temu)</th>
                                 <th>Säljpris (Amazon)</th>
@@ -89,6 +100,47 @@
                     </table>
                 </div>
             </div>
+
+            <!-- VIEW: AUTOMATION SETUP -->
+            <div id="view-automation" class="view">
+                <div class="glass automation-container">
+                    <h2><i class="fa-solid fa-robot"></i> Autonom Försäljning: AutoDS & Temu</h2>
+                    <p class="automation-warning"><i class="fa-solid fa-triangle-exclamation"></i> <strong>Varning:</strong> Temu har inget officiellt API och de tillåter egentligen inte B2B dropshipping. Renodlade "bottar" blir bannlysta av Amazon. Lösningen kallas Semi-Automation via AutoDS.</p>
+                    
+                    <div class="automation-steps">
+                        <div class="step">
+                            <span class="step-num">1</span>
+                            <h3>Skapa AutoDS Konto</h3>
+                            <p>Du måste använda ett professionellt verktyg som <strong>AutoDS</strong>. De agerar mellanhand mellan leverantörer och Amazon. Skapa ett konto och länka din Amazon Seller Central Store via deras inställningar.</p>
+                            <a href="https://autods.com" target="_blank" class="btn-action">Öppna AutoDS <i class="fa-solid fa-external-link"></i></a>
+                        </div>
+                        <div class="step">
+                            <span class="step-num">2</span>
+                            <h3>Installera Temu Importer</h3>
+                            <p>Eftersom Temu inte har en app/API för lagersaldo, måste du installera <em>AutoDS Chrome Extension</em>. Surfa in på en Temu produkt från listan i "Trender"-fliken, och klicka på "Import to AutoDS".</p>
+                        </div>
+                        <div class="step">
+                            <span class="step-num">3</span>
+                            <h3>Koppla mot Amazon</h3>
+                            <p>I AutoDS, gå till dina "Drafts". Verktyget låter dig nu sätta ett automatiskt vinstpåslag (t.ex. +150% jämfört med Temu). Klicka "Publish to Amazon". Nu övervakar AutoDS lagret autonomt (så gott det går med Temu).</p>
+                        </div>
+                        <div class="step">
+                            <span class="step-num">4</span>
+                            <h3>Automatiska Ordrar</h3>
+                            <p>När en kund köper på Amazon, fångar AutoDS upp ordern. Genom deras "Fulfilled by AutoDS" system, skickar de ut köpet automatiskt mot Amazon-kunden med riktig spårningsdata och hanterar Amazon's tracking-krav.</p>
+                        </div>
+                    </div>
+
+                    <div class="tech-card">
+                        <i class="fa-brands fa-node-js"></i>
+                        <div>
+                            <h4>Egen Automation (För Programmerare)</h4>
+                            <p>Vill du köra den dolda skrapan själv lokalt? Gå till din datormapp och skriv <code>node scraper.js</code>. Den uppdaterar <code>data.json</code> automatiskt åt denna hemsida.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
     <script src="app.js"></script>
