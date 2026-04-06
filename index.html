@@ -11,6 +11,7 @@
     <!-- Chart.js för gratis grafer -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style-adds.css">
 </head>
 <body>
     <div class="dashboard-container">
@@ -22,7 +23,8 @@
             <nav id="nav-menu">
                 <a href="#" data-target="view-overview" class="active"><i class="fa-solid fa-house"></i> Översikt</a>
                 <a href="#" data-target="view-trending"><i class="fa-solid fa-fire"></i> Trendande Live</a>
-                <a href="#" data-target="view-automation"><i class="fa-solid fa-robot"></i> Automation Setup</a>
+                <a href="#" data-target="view-tools"><i class="fa-solid fa-magnifying-glass-chart"></i> Gratis Analys</a>
+                <a href="#" data-target="view-automation"><i class="fa-solid fa-robot"></i> System & Setup</a>
             </nav>
             <div class="sidebar-footer">
                 <p class="status-indicator"><span class="dot green"></span> System Online</p>
@@ -101,43 +103,109 @@
                 </div>
             </div>
 
-            <!-- VIEW: AUTOMATION SETUP -->
+            <!-- VIEW: GRATIS ANALYS & VERKTYG -->
+            <div id="view-tools" class="view">
+                <div class="glass automation-container">
+                    <h2><i class="fa-solid fa-magnifying-glass-chart"></i> Gratis Verktyg för Global Marknadsanalys</h2>
+                    <p class="summary-text">Använd dessa sidor för att se vad som produceras i Asien och reselling-trender i Europa och Nordamerika – helt kostnadsfritt.</p>
+                    
+                    <div class="tool-grid">
+                        <div class="tool-card">
+                            <i class="fa-brands fa-amazon tool-icon"></i>
+                            <h3>1. Amazon Opportunity Explorer</h3>
+                            <p><strong>Bäst för:</strong> Exakt sökdata från plattformen.</p>
+                            <p>Detta är Amazons egna, inbyggda verktyg i "Seller Central". Det visar vad kunder skriver in i sökfältet i olika regioner (USA, EU, etc) där tillgången inte matchar efterfrågan.</p>
+                            <a href="https://sellercentral.amazon.com/opportunity-explorer" target="_blank" class="btn-tool">Öppna <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                        </div>
+                        
+                        <div class="tool-card">
+                            <i class="fa-solid fa-chart-area tool-icon" style="color: #6366f1;"></i>
+                            <h3>2. Keepa (Gratisversionen)</h3>
+                            <p><strong>Bäst för:</strong> Pris- och Rankningshistorik.</p>
+                            <p>Ett webbläsartillägg som ger dig en graf inuti Amazon. Den avslöjar om "trendiga" varor bara är en bluff-rea eller om Best Seller Ranken (BSR) är stabil över hela året.</p>
+                            <a href="https://keepa.com/" target="_blank" class="btn-tool">Ladda ner Keepa <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                        </div>
+
+                        <div class="tool-card">
+                            <i class="fa-solid fa-globe tool-icon" style="color: #ec4899;"></i>
+                            <h3>3. AliExpress Dropshipping Center</h3>
+                            <p><strong>Bäst för:</strong> Trendspaning i Asien / B2B inköp.</p>
+                            <p>AliExpress har ett "dolt" verktyg skapat just för oss. Här kan du sortera på exakt hur många gånger en produkt sålts under dagen/veckan. Bra för att hitta vinnare INNAN de når USA.</p>
+                            <a href="https://home.aliexpress.com/dropshippercenter" target="_blank" class="btn-tool">Gå till Dropship Center <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                        </div>
+                        
+                        <div class="tool-card">
+                            <i class="fa-solid fa-x-ray tool-icon" style="color: #3b82f6;"></i>
+                            <h3>4. Helium 10 X-Ray</h3>
+                            <p><strong>Bäst för:</strong> Estimerad försäljningsvolym per månad.</p>
+                            <p>Det gratis Chromium-tillägget Helium 10 Xray används för att titta på en sökning (t.ex. 'Desk Lamp') på Amazon och direkt se exakt hur många miljoner dollar sidan omsätter per månad.</p>
+                            <a href="https://www.helium10.com/" target="_blank" class="btn-tool">Hämta Extension <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: AUTOMATION SETUP / AFFILIATE VS DROPSHIPPING -->
             <div id="view-automation" class="view">
                 <div class="glass automation-container">
-                    <h2><i class="fa-solid fa-robot"></i> Autonom Försäljning: AutoDS & Temu</h2>
-                    <p class="automation-warning"><i class="fa-solid fa-triangle-exclamation"></i> <strong>Varning:</strong> Temu har inget officiellt API och de tillåter egentligen inte B2B dropshipping. Renodlade "bottar" blir bannlysta av Amazon. Lösningen kallas Semi-Automation via AutoDS.</p>
+                    <h2><i class="fa-solid fa-robot"></i> $0 Affiliate vs. Dropshipping System</h2>
+                    <p class="summary-text">Välj din arkitektur. Vill du sälja direkt på Amazon (kräver kapital för inköp) ELLER agera som mellanhand för 0 kr risk?</p>
                     
-                    <div class="automation-steps">
-                        <div class="step">
-                            <span class="step-num">1</span>
-                            <h3>Skapa AutoDS Konto</h3>
-                            <p>Du måste använda ett professionellt verktyg som <strong>AutoDS</strong>. De agerar mellanhand mellan leverantörer och Amazon. Skapa ett konto och länka din Amazon Seller Central Store via deras inställningar.</p>
-                            <a href="https://autods.com" target="_blank" class="btn-action">Öppna AutoDS <i class="fa-solid fa-external-link"></i></a>
+                    <div class="business-models-grid">
+                        
+                        <!-- Affiliate Model -->
+                        <div class="model-box model-affiliate">
+                            <div class="model-header">
+                                <span class="badge badge-zero">$0 Risk</span>
+                                <h3>Affiliate Marketing (AliExpress Portals / Amazon Associates)</h3>
+                            </div>
+                            <div class="model-body">
+                                <p><strong>Hur det fungerar:</strong> Kunden trycker på din länk på din sociala media eller hemsida. De köper varan och <em>betalar direkt till leverantören</em> (AliExpress/Amazon). Systemet ser att de kom via din kod och ger dig en procentsats (3-10%).</p>
+                                <ul>
+                                    <li><i class="fa-solid fa-check text-green"></i> <strong>Kostnad för dig:</strong> 0 Kr.</li>
+                                    <li><i class="fa-solid fa-check text-green"></i> Måste inte vänta på Amazons utbetalningstider.</li>
+                                    <li><i class="fa-solid fa-check text-green"></i> Du hanterar INGA returer eller irriterade kunder.</li>
+                                    <li><i class="fa-solid fa-xmark text-red"></i> Lägre vinstmarginal per produkt.</li>
+                                </ul>
+                                <div class="step-guide">
+                                    <h4><i class="fa-solid fa-gears"></i> Setup Guide:</h4>
+                                    <ol>
+                                        <li>Skapa gratis konto på <strong>AliExpress Portals</strong>.</li>
+                                        <li>Hitta en trendande produkt i vår "Gratis Analys"-flik.</li>
+                                        <li>Generera en Tracking-länk i portalen.</li>
+                                        <li>Klipp in länken bredvid produkten på din hemsida. Ta betalt av AliExpress när köpet sker.</li>
+                                    </ol>
+                                </div>
+                            </div>
                         </div>
-                        <div class="step">
-                            <span class="step-num">2</span>
-                            <h3>Installera Temu Importer</h3>
-                            <p>Eftersom Temu inte har en app/API för lagersaldo, måste du installera <em>AutoDS Chrome Extension</em>. Surfa in på en Temu produkt från listan i "Trender"-fliken, och klicka på "Import to AutoDS".</p>
-                        </div>
-                        <div class="step">
-                            <span class="step-num">3</span>
-                            <h3>Koppla mot Amazon</h3>
-                            <p>I AutoDS, gå till dina "Drafts". Verktyget låter dig nu sätta ett automatiskt vinstpåslag (t.ex. +150% jämfört med Temu). Klicka "Publish to Amazon". Nu övervakar AutoDS lagret autonomt (så gott det går med Temu).</p>
-                        </div>
-                        <div class="step">
-                            <span class="step-num">4</span>
-                            <h3>Automatiska Ordrar</h3>
-                            <p>När en kund köper på Amazon, fångar AutoDS upp ordern. Genom deras "Fulfilled by AutoDS" system, skickar de ut köpet automatiskt mot Amazon-kunden med riktig spårningsdata och hanterar Amazon's tracking-krav.</p>
-                        </div>
-                    </div>
 
-                    <div class="tech-card">
-                        <i class="fa-brands fa-node-js"></i>
-                        <div>
-                            <h4>Egen Automation (För Programmerare)</h4>
-                            <p>Vill du köra den dolda skrapan själv lokalt? Gå till din datormapp och skriv <code>node scraper.js</code>. Den uppdaterar <code>data.json</code> automatiskt åt denna hemsida.</p>
+                        <!-- Dropshipping Model -->
+                        <div class="model-box model-dropshipping">
+                            <div class="model-header">
+                                <span class="badge badge-pro">Högre Profit</span>
+                                <h3>Amazon Dropshipping (AutoDS Integration)</h3>
+                            </div>
+                            <div class="model-body">
+                                <p><strong>Hur det fungerar:</strong> Du öppnar en butik på Amazon. Kunden köper och betalar till Amazon. Amazon skyddar kundens pengar i två veckor. Du använder <em>dina egna pengar</em> för att betala AliExpress för produkten och skicka den. Din vinst blir mellanskillnaden.</p>
+                                <ul>
+                                    <li><i class="fa-solid fa-xmark text-red"></i> <strong>Kostnad för dig:</strong> Kräver budget (kredit) för att köpa in varor.</li>
+                                    <li><i class="fa-solid fa-check text-green"></i> Högre potentiell uppsida och profit.</li>
+                                    <li><i class="fa-solid fa-xmark text-red"></i> Du är ansvarig för returer, trasiga varor och Amazon Policy Violations.</li>
+                                </ul>
+                                <div class="step-guide">
+                                    <h4><i class="fa-solid fa-gears"></i> Setup Guide:</h4>
+                                    <ol>
+                                        <li>Skapa <strong>Amazon Seller Central Account</strong>.</li>
+                                        <li>Skapa ett <strong>AutoDS Konto</strong> för att synkronisera lagersaldon automatiskt.</li>
+                                        <li>Importera AliExpress artiklar till AutoDS.</li>
+                                        <li>Länka Amazon och slå på Auto-Fulfillment knappen.</li>
+                                    </ol>
+                                </div>
+                            </div>
                         </div>
+
                     </div>
+                    
                 </div>
             </div>
 

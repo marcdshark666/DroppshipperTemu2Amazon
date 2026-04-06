@@ -1,0 +1,169 @@
+/* Tillägg för View-Tools och Affiliate-modell i style.css */
+
+.summary-text {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    line-height: 1.5;
+}
+
+/* Tool Grid (Gratissidorna) */
+.tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.tool-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.tool-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255,255,255,0.05);
+}
+
+.tool-icon {
+    font-size: 2.5rem;
+    color: #f59e0b;
+    margin-bottom: 1rem;
+}
+
+.tool-card h3 {
+    font-size: 1.1rem;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+
+.tool-card p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    flex: 1; /* Pushar knappen till botten */
+}
+
+.btn-tool {
+    width: fit-content;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: 0.2s;
+}
+
+.btn-tool:hover {
+    background: #3b82f6;
+    color: #fff;
+}
+
+/* Affiliate vs Dropshipping Grid */
+.business-models-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.model-box {
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.4);
+    overflow: hidden;
+}
+
+.model-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+    position: relative;
+    background: rgba(255,255,255,0.02);
+}
+
+.model-header h3 {
+    margin-top: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.badge {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 12px;
+}
+
+.badge-zero {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.badge-pro {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.model-body {
+    padding: 1.5rem;
+}
+
+.model-body p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.model-body ul {
+    list-style: none;
+    margin-bottom: 2rem;
+}
+
+.model-body ul li {
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-main);
+    display: flex;
+    gap: 10px;
+}
+
+.text-green { color: #10b981; }
+.text-red { color: #ef4444; }
+
+.step-guide {
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.step-guide h4 {
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--primary);
+}
+
+.step-guide ol {
+    padding-left: 1.2rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.step-guide ol li {
+    margin-bottom: 0.4rem;
+}
+
+@media (max-width: 1024px) {
+    .business-models-grid {
+        grid-template-columns: 1fr;
+    }
+}
