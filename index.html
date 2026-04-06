@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dropship Monitor | Temu2Amazon</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js för gratis grafer -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass">
+            <div class="logo">
+                <i class="fa-solid fa-chart-line"></i> D-Monitor
+            </div>
+            <nav>
+                <a href="#" class="active"><i class="fa-solid fa-house"></i> Översikt</a>
+                <a href="#"><i class="fa-solid fa-fire"></i> Trendande</a>
+                <a href="#"><i class="fa-solid fa-money-bill-trend-up"></i> Vinster</a>
+                <a href="#"><i class="fa-solid fa-gear"></i> Inställningar</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar glass">
+                <h1>Översikt - Profit & Trender</h1>
+                <div class="user-profile">
+                    <span>Välkommen, Marc</span>
+                    <i class="fa-solid fa-user-astronaut"></i>
+                </div>
+            </header>
+
+            <div class="kpi-cards">
+                <div class="kpi-card glass">
+                    <h3>Dagens Vinst</h3>
+                    <p class="amount" id="daily-profit">$0</p>
+                    <span class="trend positive"><i class="fa-solid fa-arrow-up"></i> 12% vs igår</span>
+                </div>
+                <div class="kpi-card glass">
+                    <h3>Veckans Försäljning</h3>
+                    <p class="amount" id="weekly-sales">0</p>
+                    <span class="trend positive"><i class="fa-solid fa-arrow-up"></i> 5% vs förra veckan</span>
+                </div>
+                <div class="kpi-card glass">
+                    <h3>Totalt Året (2026)</h3>
+                    <p class="amount" id="yearly-profit">$0</p>
+                    <span class="trend neutral"><i class="fa-solid fa-minus"></i> On track</span>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <div class="chart-container glass main-chart">
+                    <div class="chart-header">
+                        <h2>Försäljning & Vinst (Månad)</h2>
+                        <div class="chart-controls">
+                            <button class="btn-time" onclick="updateChart('day')">Dag</button>
+                            <button class="btn-time" onclick="updateChart('week')">Vecka</button>
+                            <button class="btn-time active" onclick="updateChart('month')">Månad</button>
+                        </div>
+                    </div>
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+
+            <div class="trending-section">
+                <div class="trending-table-container glass">
+                    <h2><i class="fa-solid fa-fire"></i> Topp 10 Trendande Produkter (April 2026)</h2>
+                    <table class="trending-table" id="trending-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Plattformsvolym (Hype)</th>
+                                <th>Produktnamn</th>
+                                <th>Inköp (Temu)</th>
+                                <th>Säljpris (Amazon)</th>
+                                <th>Est. Marginal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Genereras via app.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
