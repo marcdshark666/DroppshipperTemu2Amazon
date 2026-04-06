@@ -144,7 +144,7 @@ function populateTable(products) {
                 <td><img src="${prod.image}" alt="${prod.title}" class="prod-img"></td>
                 <td>#${prod.rank}</td>
                 <td><span class="trend-badge ${hypeClass}"><i class="fa-solid ${hypeIcon}"></i> ${prod.hype}</span></td>
-                <td><strong>${prod.title}</strong><br><small><a href="${prod.source_amazon}" style="color:#94a3b8;" target="_blank">Kolla Konkurrent</a></small></td>
+                <td><strong>${prod.title}</strong><br><small><a href="${prod.source_temu}" style="color:#fbbf24;" target="_blank">Inköpspris (Temu)</a> | <a href="${prod.source_amazon}" style="color:#60a5fa;" target="_blank">Säljpris (Amazon)</a></small></td>
                 <td>$${prod.temu_price.toFixed(2)}</td>
                 <td>$${prod.amazon_price.toFixed(2)}</td>
                 <td class="profit-margin">+$${profit.toFixed(2)} (${profitMargin}%)</td>
