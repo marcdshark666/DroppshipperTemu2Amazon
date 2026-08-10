@@ -628,3 +628,29 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
 .sync-state.ok { color: #10b981; opacity: 1; }
 .sync-state.error { color: #f43f5e; opacity: 1; }
 .sync-state.working { color: #facc15; opacity: 1; }
+
+/* Inloggat konto */
+.account-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    word-break: break-all;
+    background: rgba(99,102,241,0.15);
+    border: 1px solid rgba(99,102,241,0.5);
+    border-radius: 8px;
+}
+.account-row i { color: #6366f1; }
+#accountEmail {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 7px 10px;
+    font-size: 0.78rem;
+    color: inherit;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+}
+#accountEmail:focus { outline: 2px solid #6366f1; outline-offset: 1px; }

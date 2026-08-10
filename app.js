@@ -26,8 +26,39 @@ document.addEventListener("DOMContentLoaded", () => {
    SERVERSYNK — samma data på dator och mobil via /api/state
    Nyckeln sparas lokalt; utan nyckel körs allt precis som förut (localStorage).
    ========================================================================== */
+let accountEmail = localStorage.getItem("medical_wheel_email") || "";
 let syncKey = localStorage.getItem("medical_wheel_synckey") || "";
 let syncTimer = null;
+
+/* Kontonyckeln härleds ur e-posten — samma e-post ger alltid samma konto,
+   på vilken dator eller telefon som helst. Adressen skickas aldrig till servern. */
+async function keyFromEmail(email) {
+    const normalized = String(email).trim().toLowerCase();
+    const bytes = new TextEncoder().encode(`snurrhjul:${normalized}`);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+    return `u${hex.slice(0, 40)}`;
+}
+
+function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(value).trim());
+}
+
+function renderAccountUI() {
+    const loginBox = document.getElementById("loginBox");
+    const accountBox = document.getElementById("accountBox");
+    const label = document.getElementById("accountLabel");
+    if (!loginBox || !accountBox) return;
+
+    if (accountEmail && syncKey) {
+        loginBox.style.display = "none";
+        accountBox.style.display = "block";
+        if (label) label.innerText = accountEmail;
+    } else {
+        loginBox.style.display = "block";
+        accountBox.style.display = "none";
+    }
+}
 
 function setSyncState(text, kind) {
     const el = document.getElementById("syncState");
@@ -79,16 +110,22 @@ async function pushState(silent) {
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
-        setSyncState(`Sparad på servern ${new Date().toLocaleTimeString("sv-SE")}`, "ok");
+        setSyncState(`✓ Sparat på servern ${new Date().toLocaleTimeString("sv-SE")}`, "ok");
     } catch (err) {
-        setSyncState(`Kunde inte spara på servern (${err.message}). Data finns kvar lokalt.`, "error");
+        setSyncState(`Kunde inte spara på servern (${err.message}). Allt finns kvar lokalt.`, "error");
     }
 }
 
+/* Sparar direkt när du trycker på en knapp — ingen fördröjning.
+   Snabba klick i följd slås ihop till en skrivning via syncTimer. */
 function queuePush() {
-    if (!syncKey) return;
+    if (!syncKey) {
+        setSyncState("Sparat lokalt. Logga in för att spara på servern.", "");
+        return;
+    }
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => pushState(true), 1500);
+    setSyncState("Sparar...", "working");
+    syncTimer = setTimeout(() => { syncTimer = null; pushState(true); }, 250);
 }
 
 async function pullState(silent) {
@@ -101,48 +138,74 @@ async function pullState(silent) {
         if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
 
         if (!json.data) {
-            setSyncState("Ingen data på servern än — dina lokala fall laddas upp.", "ok");
+            setSyncState("Nytt konto — dina fall här laddas upp till servern.", "ok");
             pushState(true);
             return;
         }
 
         applyState(json.data);
-        setSyncState(`Hämtad från servern (${trainingLog.length} träningstillfällen).`, "ok");
+        const antalFall = Object.keys(caseStatuses).length;
+        setSyncState(`✓ Inloggad. ${antalFall} färgsatta fall och ${trainingLog.length} träningstillfällen hämtade.`, "ok");
     } catch (err) {
         setSyncState(`Kunde inte hämta från servern (${err.message}). Kör vidare lokalt.`, "error");
     }
 }
 
+async function loginWithEmail(email) {
+    if (!isValidEmail(email)) {
+        setSyncState("Skriv en giltig e-postadress.", "error");
+        return;
+    }
+
+    setSyncState("Loggar in...", "working");
+    accountEmail = String(email).trim().toLowerCase();
+    syncKey = await keyFromEmail(accountEmail);
+    localStorage.setItem("medical_wheel_email", accountEmail);
+    localStorage.setItem("medical_wheel_synckey", syncKey);
+
+    renderAccountUI();
+    await pullState(false);
+}
+
+function logout() {
+    accountEmail = "";
+    syncKey = "";
+    localStorage.removeItem("medical_wheel_email");
+    localStorage.removeItem("medical_wheel_synckey");
+    renderAccountUI();
+    setSyncState("Utloggad — data sparas bara i den här webbläsaren.", "");
+}
+
 function initSync() {
-    const input = document.getElementById("syncKeyInput");
-    if (input) input.value = syncKey;
+    const input = document.getElementById("accountEmail");
+    if (input) input.value = accountEmail;
 
-    document.getElementById("btnSyncSave")?.addEventListener("click", () => {
-        const value = (input?.value || "").trim();
-        if (value && !/^[a-zA-Z0-9_-]{4,64}$/.test(value)) {
-            setSyncState("Ogiltig nyckel: 4–64 tecken, bara a-z, A-Z, 0-9, _ och -.", "error");
-            return;
-        }
-        syncKey = value;
-        localStorage.setItem("medical_wheel_synckey", syncKey);
-        if (!syncKey) {
-            setSyncState("Serversynk av — data sparas bara lokalt.", "");
-            return;
-        }
-        pullState(false);
+    document.getElementById("btnLogin")?.addEventListener("click", () => loginWithEmail(input?.value || ""));
+    input?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") loginWithEmail(input.value);
     });
 
+    document.getElementById("btnLogout")?.addEventListener("click", logout);
     document.getElementById("btnSyncPull")?.addEventListener("click", () => {
-        if (!syncKey) return setSyncState("Ange en synknyckel först.", "error");
+        if (!syncKey) return setSyncState("Logga in först.", "error");
         pullState(false);
     });
 
-    document.getElementById("btnSyncPush")?.addEventListener("click", () => {
-        if (!syncKey) return setSyncState("Ange en synknyckel först.", "error");
-        pushState(false);
-    });
+    renderAccountUI();
 
-    if (syncKey) pullState(true);
+    if (syncKey) {
+        pullState(true);
+    }
+
+    // Sista utvägen: skicka osparade ändringar innan fliken stängs
+    window.addEventListener("beforeunload", () => {
+        if (!syncKey || !syncTimer) return;
+        clearTimeout(syncTimer);
+        navigator.sendBeacon?.(
+            `/api/state?key=${encodeURIComponent(syncKey)}`,
+            new Blob([JSON.stringify(collectState())], { type: "application/json" })
+        );
+    });
 }
 
 /* ==========================================================================

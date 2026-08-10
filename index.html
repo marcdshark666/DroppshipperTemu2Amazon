@@ -62,19 +62,32 @@
             </div>
 
             <div class="panel-section">
-                <h3><i class="fa-solid fa-cloud-arrow-up"></i> Serversynk</h3>
-                <p class="sync-help">Välj en egen synknyckel så sparas dina fall, repetitioner och tidslinje på servern — samma data på dator och mobil.</p>
-                <div class="sync-row">
-                    <input type="text" id="syncKeyInput" placeholder="t.ex. marc-bt-2026" autocomplete="off" spellcheck="false">
-                    <button class="btn-sync" id="btnSyncSave" title="Spara nyckel och synka">
-                        <i class="fa-solid fa-rotate"></i>
-                    </button>
+                <h3><i class="fa-solid fa-user-lock"></i> Mitt konto</h3>
+
+                <!-- Utloggat läge -->
+                <div id="loginBox">
+                    <p class="sync-help">Logga in med din e-post — inget lösenord. Dina 🟢/🔴/🔵-markeringar, repetitioner och tidslinje kopplas till kontot och sparas automatiskt.</p>
+                    <div class="sync-row">
+                        <input type="email" id="accountEmail" placeholder="din@epost.se" autocomplete="email" spellcheck="false">
+                        <button class="btn-sync" id="btnLogin" title="Logga in">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="sync-actions">
-                    <button class="btn-sync-mini" id="btnSyncPull"><i class="fa-solid fa-cloud-arrow-down"></i> Hämta från server</button>
-                    <button class="btn-sync-mini" id="btnSyncPush"><i class="fa-solid fa-cloud-arrow-up"></i> Spara till server</button>
+
+                <!-- Inloggat läge -->
+                <div id="accountBox" style="display:none;">
+                    <div class="account-row">
+                        <i class="fa-solid fa-circle-user"></i>
+                        <span id="accountLabel">—</span>
+                    </div>
+                    <div class="sync-actions">
+                        <button class="btn-sync-mini" id="btnSyncPull"><i class="fa-solid fa-cloud-arrow-down"></i> Hämta nu</button>
+                        <button class="btn-sync-mini" id="btnLogout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logga ut</button>
+                    </div>
                 </div>
-                <div class="sync-state" id="syncState">Serversynk av — data sparas bara lokalt.</div>
+
+                <div class="sync-state" id="syncState">Inte inloggad — data sparas bara i den här webbläsaren.</div>
             </div>
 
             <div class="panel-section">
