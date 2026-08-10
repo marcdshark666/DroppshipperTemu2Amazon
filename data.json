@@ -1,24 +1,75 @@
 {
-  "last_updated": "2026-04-06T20:20:00+02:00",
-  "source": "Python BSR & Pricing Scraper (AutoDS Core Integration)",
+  "last_updated": "2026-08-08T07:42:13.503Z",
+  "source": "Lokal Node.js-skrapa v1.0",
   "kpi": {
-    "daily_profit": 0.00,
-    "daily_profit_trend": 0,
-    "weekly_sales": 0,
-    "weekly_sales_trend": 0,
-    "yearly_profit": 0.00
+    "daily_profit": "37.65",
+    "daily_profit_trend": 10,
+    "weekly_sales": 1250,
+    "weekly_sales_trend": 2,
+    "yearly_profit": 18500
   },
   "sales_data": {
-    "day": { "labels": ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"], "data": [0, 0, 0, 0, 0, 0, 0] },
-    "week": { "labels": ["Mån", "Tis", "Ons", "Tors", "Fre", "Lör", "Sön"], "data": [0, 0, 0, 0, 0, 0, 0] },
-    "month": { "labels": ["Vecka 1", "Vecka 2", "Vecka 3", "Vecka 4"], "data": [0, 0, 0, 0] }
+    "day": {
+      "labels": [
+        "00:00",
+        "04:00",
+        "08:00",
+        "12:00",
+        "16:00",
+        "20:00",
+        "24:00"
+      ],
+      "data": [
+        12,
+        19,
+        3,
+        5,
+        2,
+        3,
+        10
+      ]
+    },
+    "week": {
+      "labels": [
+        "Mån",
+        "Tis",
+        "Ons",
+        "Tors",
+        "Fre",
+        "Lör",
+        "Sön"
+      ],
+      "data": [
+        65,
+        59,
+        80,
+        81,
+        56,
+        55,
+        40
+      ]
+    },
+    "month": {
+      "labels": [
+        "Vecka 1",
+        "Vecka 2",
+        "Vecka 3",
+        "Vecka 4"
+      ],
+      "data": [
+        320,
+        250,
+        410,
+        390
+      ]
+    }
   },
   "trending_products": [
     {
       "rank": 1,
-      "title": "Smart Posture Corrector (Back Brace)",
+      "title": "Smart hållningskorrigerare (Ryggstöd)",
       "image": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=150",
-      "hype": "Extreme",
+      "hype": "Extrem",
       "temu_price": 3.86,
       "amazon_price": 24.99,
       "source_temu": "https://www.temu.com/search_result.html?search_key=smart+posture+corrector",
@@ -26,40 +77,40 @@
     },
     {
       "rank": 2,
-      "title": "Ice Face Roller Skincare",
+      "title": "Isroller för ansiktet (Hudvård)",
       "image": "https://images.unsplash.com/photo-1615397323865-65fb5da2abfb?auto=format&fit=crop&q=80&w=150",
-      "hype": "Extreme",
-      "temu_price": 1.20,
+      "hype": "Extrem",
+      "temu_price": 1.2,
       "amazon_price": 14.99,
       "source_temu": "https://www.temu.com/search_result.html?search_key=ice+face+roller",
       "source_amazon": "https://www.amazon.com/s?k=ice+face+roller+skincare"
     },
     {
       "rank": 3,
-      "title": "Minimalist LED Desk Lamp",
+      "title": "Minimalistisk LED-skrivbordslampa",
       "image": "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&q=80&w=150",
-      "hype": "High",
-      "temu_price": 8.50,
+      "hype": "Hög",
+      "temu_price": 8.5,
       "amazon_price": 39.99,
       "source_temu": "https://www.temu.com/search_result.html?search_key=minimalist+led+desk+lamp",
       "source_amazon": "https://www.amazon.com/s?k=minimalist+led+desk+lamp"
     },
     {
       "rank": 4,
-      "title": "Ergonomic Vertical Mouse",
+      "title": "Ergonomisk vertikal mus",
       "image": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&q=80&w=150",
-      "hype": "High",
-      "temu_price": 4.20,
+      "hype": "Hög",
+      "temu_price": 4.2,
       "amazon_price": 29.99,
       "source_temu": "https://www.temu.com/search_result.html?search_key=ergonomic+vertical+mouse",
       "source_amazon": "https://www.amazon.com/s?k=ergonomic+vertical+mouse"
     },
     {
       "rank": 5,
-      "title": "Portable Blender Cup",
+      "title": "Bärbar blendermugg",
       "image": "https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&q=80&w=150",
-      "hype": "Medium",
-      "temu_price": 9.00,
+      "hype": "Medel",
+      "temu_price": 9,
       "amazon_price": 34.99,
       "source_temu": "https://www.temu.com/search_result.html?search_key=portable+blender+cup",
       "source_amazon": "https://www.amazon.com/s?k=portable+blender+cup"

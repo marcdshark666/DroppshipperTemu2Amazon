@@ -1,155 +1,440 @@
-let chartInstance = null;
-let currentData = null; // För att spara json datan
+/* ==========================================================================
+   MEDICINSKT SNURRHJUL — APPLICATION LOGIC (app.js)
+   ========================================================================== */
 
-document.addEventListener('DOMContentLoaded', () => {
-    initNavigation();
-    fetchData(); // Hämtar verklig eller skrapad data
+let wheel = null;
+let allMedicalCases = [];
+let caseStatuses = JSON.parse(localStorage.getItem("medical_wheel_statuses") || "{}");
+let userScore = parseInt(localStorage.getItem("medical_wheel_score") || "0");
+let userStreak = parseInt(localStorage.getItem("medical_wheel_streak") || "0");
+let srsData = JSON.parse(localStorage.getItem("medical_wheel_srs") || "{}");
+let trainingLog = JSON.parse(localStorage.getItem("medical_wheel_log") || "[]");
+let currentSelectedCase = null;
+let selectedCategories = new Set();
+let activeStatusFilter = "all";
+
+document.addEventListener("DOMContentLoaded", () => {
+    wheel = new MedicalWheel("wheelCanvas");
+    loadMedicalCases();
+    initEventListeners();
+    updateScoreUI();
+    renderTimeline();
 });
 
-function initNavigation() {
-    const navLinks = document.querySelectorAll('#nav-menu a');
-    const views = document.querySelectorAll('.view');
-    const pageTitle = document.getElementById('page-title');
+/* ==========================================================================
+   SPACED REPETITION (SM-2-light)
+   Rött = lapse → tillbaka i kön om 10 minuter (repeteras samma pass).
+   Grönt = intervallet växer: 1 dygn → 3 dygn → intervall × easiness.
+   ========================================================================== */
+const LAPSE_MINUTES = 10;
 
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            // Ändra active class på länkarna
-            navLinks.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
+function getSrs(id) {
+    return srsData[id] || { reps: 0, intervalDays: 0, easiness: 2.5, lapses: 0, due: null, last: null };
+}
 
-            // Ändra sidetitel baserat på länken
-            pageTitle.textContent = link.innerText;
+function scheduleCase(id, passed) {
+    const s = getSrs(id);
+    const now = Date.now();
+    let dueMs;
 
-            // Göm alla vyer och visa den valda
-            const targetId = link.getAttribute('data-target');
-            views.forEach(v => v.classList.remove('active'));
-            document.getElementById(targetId).classList.add('active');
+    if (passed) {
+        s.reps += 1;
+        s.easiness = Math.min(2.8, s.easiness + 0.1);
+        if (s.reps === 1) s.intervalDays = 1;
+        else if (s.reps === 2) s.intervalDays = 3;
+        else s.intervalDays = Math.round(s.intervalDays * s.easiness);
+        dueMs = now + s.intervalDays * 24 * 60 * 60 * 1000;
+    } else {
+        s.reps = 0;
+        s.lapses += 1;
+        s.intervalDays = 0;
+        s.easiness = Math.max(1.3, s.easiness - 0.2);
+        dueMs = now + LAPSE_MINUTES * 60 * 1000;
+    }
+
+    s.last = new Date(now).toISOString();
+    s.due = new Date(dueMs).toISOString();
+    srsData[id] = s;
+    localStorage.setItem("medical_wheel_srs", JSON.stringify(srsData));
+    return s;
+}
+
+function isDue(id) {
+    const s = srsData[id];
+    if (!s || !s.due) return false;
+    return new Date(s.due).getTime() <= Date.now();
+}
+
+function formatRelative(iso) {
+    if (!iso) return "";
+    const diff = new Date(iso).getTime() - Date.now();
+    const abs = Math.abs(diff);
+    const min = Math.round(abs / 60000);
+    const hrs = Math.round(abs / 3600000);
+    const days = Math.round(abs / 86400000);
+    let text;
+    if (min < 60) text = `${min} min`;
+    else if (hrs < 24) text = `${hrs} h`;
+    else text = `${days} d`;
+    return diff >= 0 ? `om ${text}` : `${text} sedan`;
+}
+
+function formatStamp(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString("sv-SE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function updateScoreUI() {
+    document.getElementById("scoreDisplay").innerText = `${userScore} p`;
+    document.getElementById("streakDisplay").innerText = `${userStreak} streak`;
+}
+
+function loadMedicalCases() {
+    const syncStatus = document.getElementById("syncStatus");
+    if (syncStatus) syncStatus.innerText = "Laddar fall...";
+
+    fetch("medical_cases.json")
+        .then(res => res.json())
+        .then(data => {
+            allMedicalCases = data;
+            if (syncStatus) syncStatus.innerText = `${data.length} Fall Klara`;
+            buildCategoryFilters();
+            applyFilters();
+        })
+        .catch(err => {
+            console.error("Kunde inte ladda medical_cases.json:", err);
+            if (syncStatus) syncStatus.innerText = "Fel vid laddning";
         });
+}
+
+function buildCategoryFilters() {
+    const container = document.getElementById("categoryContainer");
+    if (!container) return;
+
+    const categories = Array.from(new Set(allMedicalCases.map(c => c.category || "Övrigt")));
+    container.innerHTML = "";
+
+    categories.forEach(cat => {
+        const label = document.createElement("label");
+        label.className = "checkbox-label";
+        label.innerHTML = `
+            <input type="checkbox" value="${cat}" checked onchange="toggleCategory('${cat}', this.checked)">
+            <span>${cat}</span>
+        `;
+        container.appendChild(label);
+        selectedCategories.add(cat);
     });
 }
 
-function fetchData() {
-    // Hämtar från vår lokala data.json (som scraper.js genererar)
-    fetch('data.json')
-        .then(response => {
-            if(!response.ok) throw new Error('Network response was not ok');
-            return response.json();
-        })
-        .then(data => {
-            currentData = data;
-            updateUI(data);
-        })
-        .catch(error => {
-            console.error('Error fetching data:', error);
-            document.getElementById('sidebar-updated-time').innerText = "Kunde inte hämta data.";
-        });
+function toggleCategory(category, isChecked) {
+    if (isChecked) {
+        selectedCategories.add(category);
+    } else {
+        selectedCategories.delete(category);
+    }
+    applyFilters();
 }
 
-function updateUI(data) {
-    // 1. Uppdatera Tidsstämplar och Källor
-    const dateOpts = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    const dateFormatted = new Date(data.last_updated).toLocaleDateString('sv-SE', dateOpts);
-    
-    document.getElementById('sidebar-updated-time').innerText = "Senast: " + dateFormatted;
-    document.getElementById('data-updated-text').innerText = dateFormatted;
-    document.getElementById('data-source-text').innerText = data.source;
+function initEventListeners() {
+    // Show titles toggle
+    document.getElementById("toggleShowTitles")?.addEventListener("change", (e) => {
+        if (wheel) wheel.setShowTitles(e.target.checked);
+    });
 
-    // 2. Uppdatera KPI:er
-    document.getElementById('daily-profit').innerText = '$' + data.kpi.daily_profit;
-    const dailyTrend = document.getElementById('daily-trend');
-    dailyTrend.innerHTML = `<i class="fa-solid fa-arrow-up"></i> ${data.kpi.daily_profit_trend}% vs igår`;
-    dailyTrend.className = 'trend positive';
+    // Red C filter checkbox
+    document.getElementById("chkRedCOnly")?.addEventListener("change", () => {
+        applyFilters();
+    });
 
-    document.getElementById('weekly-sales').innerText = data.kpi.weekly_sales;
-    const weeklyTrend = document.getElementById('weekly-trend');
-    weeklyTrend.innerHTML = `<i class="fa-solid fa-arrow-up"></i> ${data.kpi.weekly_sales_trend}% vs förra veckan`;
-    weeklyTrend.className = 'trend positive';
+    // Status filter pills
+    document.querySelectorAll(".pill-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            activeStatusFilter = btn.getAttribute("data-status");
+            applyFilters();
+        });
+    });
 
-    document.getElementById('yearly-profit').innerText = '$' + data.kpi.yearly_profit.toLocaleString();
+    // Spin button
+    document.getElementById("btnSpin")?.addEventListener("click", () => {
+        if (!wheel || wheel.isSpinning) return;
+        wheel.spin((winningCase) => {
+            openMysteryModal(winningCase);
+        });
+    });
 
-    // 3. Generera Trender-tabellen
-    populateTable(data.trending_products);
+    // Reveal Diagnosis button
+    document.getElementById("btnRevealDiagnosis")?.addEventListener("click", () => {
+        revealDiagnosis();
+    });
 
-    // 4. Initiera Chart
-    if (!chartInstance) {
-        initChart(data.sales_data);
+    // Pass / Fail buttons
+    document.getElementById("btnMarkPass")?.addEventListener("click", () => markCaseResult(true));
+    document.getElementById("btnMarkFail")?.addEventListener("click", () => markCaseResult(false));
+
+    // Close Modal buttons
+    document.getElementById("btnCloseMystery")?.addEventListener("click", closeMysteryModal);
+
+    // Rensa tidslinjen (behåller status och repetitionsschema)
+    document.getElementById("btnClearHistory")?.addEventListener("click", () => {
+        if (!trainingLog.length) return;
+        if (!confirm("Rensa hela träningstidslinjen? Statusfärger och repetitionsschema behålls.")) return;
+        trainingLog = [];
+        localStorage.setItem("medical_wheel_log", "[]");
+        renderTimeline();
+    });
+}
+
+function applyFilters() {
+    const redCOnly = document.getElementById("chkRedCOnly")?.checked;
+
+    let filtered = allMedicalCases.filter(item => {
+        // Category check
+        const cat = item.category || "Övrigt";
+        if (!selectedCategories.has(cat)) return false;
+
+        // Red C check
+        if (redCOnly && !item.hasRedC) return false;
+
+        // Status check
+        const status = caseStatuses[item.id] || "untested"; // green, red, untested
+        if (activeStatusFilter === "green" && status !== "green") return false;
+        if (activeStatusFilter === "red" && status !== "red") return false;
+        if (activeStatusFilter === "untested" && status !== "untested") return false;
+        if (activeStatusFilter === "due" && !isDue(item.id)) return false;
+
+        return true;
+    });
+
+    // Update Counts
+    let greenCount = 0, redCount = 0, untestedCount = 0;
+    allMedicalCases.forEach(c => {
+        const st = caseStatuses[c.id] || "untested";
+        if (st === "green") greenCount++;
+        else if (st === "red") redCount++;
+        else untestedCount++;
+    });
+
+    document.getElementById("countAll").innerText = allMedicalCases.length;
+    document.getElementById("countGreen").innerText = greenCount;
+    document.getElementById("countRed").innerText = redCount;
+    document.getElementById("countUntested").innerText = untestedCount;
+    document.getElementById("countDue").innerText = allMedicalCases.filter(c => isDue(c.id)).length;
+    document.getElementById("activeCasesCount").innerText = filtered.length;
+
+    if (wheel) {
+        wheel.setItems(filtered);
+    }
+
+    renderCaseStrip();
+}
+
+/* ==========================================================================
+   FALLRAD — scrolla igenom alla fall och sätt 🟢 / 🔴 / 🔵 direkt
+   ========================================================================== */
+function renderCaseStrip() {
+    const strip = document.getElementById("caseStrip");
+    if (!strip) return;
+
+    strip.innerHTML = "";
+    allMedicalCases.forEach(c => {
+        const status = caseStatuses[c.id] || "untested";
+        const num = c.number || c.rowIndex;
+        const chip = document.createElement("div");
+        chip.className = `case-chip status-${status}${isDue(c.id) ? " is-due" : ""}`;
+        chip.innerHTML = `
+            <button class="chip-number" title="Öppna fall #${num}">#${num}</button>
+            <div class="chip-actions">
+                <button class="chip-dot dot-green" data-set="green" title="Klarade">🟢</button>
+                <button class="chip-dot dot-red" data-set="red" title="Ej klarade — repetera senare">🔴</button>
+                <button class="chip-dot dot-blue" data-set="untested" title="Nollställ till ej testad">🔵</button>
+            </div>
+        `;
+        chip.querySelector(".chip-number").addEventListener("click", () => openMysteryModal(c));
+        chip.querySelectorAll(".chip-dot").forEach(btn => {
+            btn.addEventListener("click", () => setCaseStatus(c, btn.getAttribute("data-set")));
+        });
+        strip.appendChild(chip);
+    });
+}
+
+function setCaseStatus(caseData, newStatus) {
+    if (newStatus === "untested") {
+        delete caseStatuses[caseData.id];
+        delete srsData[caseData.id];
+        localStorage.setItem("medical_wheel_srs", JSON.stringify(srsData));
+    } else {
+        caseStatuses[caseData.id] = newStatus;
+        const s = scheduleCase(caseData.id, newStatus === "green");
+        logTraining(caseData, newStatus === "green", s);
+    }
+
+    localStorage.setItem("medical_wheel_statuses", JSON.stringify(caseStatuses));
+    applyFilters();
+    renderTimeline();
+}
+
+function openMysteryModal(caseData) {
+    currentSelectedCase = caseData;
+
+    // NOLLTIPS-REGELN: innan avslöjandet visas ENDAST fallnumret.
+    // Ingen kategori, ingen anamnes, inga länkar, ingen mnemonic — inget som kan leda tanken.
+    document.getElementById("modalCaseNumber").innerText = caseData.number ? `Fall #${caseData.number}` : `Fall #${caseData.rowIndex}`;
+
+    const catEl = document.getElementById("modalCategory");
+    catEl.innerText = caseData.category || "Generell";
+    catEl.style.display = "none";
+
+    const scenarioBox = document.getElementById("scenarioBox");
+    document.getElementById("modalScenarioText").innerText = caseData.caseScenario || "";
+    scenarioBox.style.display = "none";
+
+    // Hide revealed content
+    document.getElementById("mysteryContent").style.display = "none";
+    document.getElementById("btnRevealDiagnosis").style.display = "inline-block";
+    document.getElementById("mysteryPrompt").style.display = "block";
+    document.getElementById("evalRow").style.display = "none";
+
+    document.getElementById("modalMystery").classList.add("active");
+}
+
+function revealDiagnosis() {
+    if (!currentSelectedCase) return;
+
+    document.getElementById("btnRevealDiagnosis").style.display = "none";
+    document.getElementById("mysteryPrompt").style.display = "none";
+    document.getElementById("mysteryContent").style.display = "block";
+    document.getElementById("evalRow").style.display = "flex";
+
+    // Först NU (efter avslöjandet) får kategori och anamnes visas
+    document.getElementById("modalCategory").style.display = "inline-block";
+    const scenarioText = currentSelectedCase.caseScenario;
+    const scenarioBox = document.getElementById("scenarioBox");
+    scenarioBox.style.display = scenarioText ? "block" : "none";
+
+    document.getElementById("modalDiagnosisTitle").innerText = currentSelectedCase.title.toUpperCase();
+
+    // Mnemonic
+    const mBox = document.getElementById("modalMnemonicBox");
+    if (currentSelectedCase.mnemonic) {
+        document.getElementById("modalMnemonic").innerText = currentSelectedCase.mnemonic;
+        mBox.style.display = "block";
+    } else {
+        mBox.style.display = "none";
+    }
+
+    // Notes
+    const nBox = document.getElementById("modalNotesBox");
+    if (currentSelectedCase.notes) {
+        document.getElementById("modalNotes").innerText = currentSelectedCase.notes;
+        nBox.style.display = "block";
+    } else {
+        nBox.style.display = "none";
+    }
+
+    // Document links
+    const linksRow = document.getElementById("modalLinksRow");
+    linksRow.innerHTML = "";
+
+    if (currentSelectedCase.docLink) {
+        linksRow.innerHTML += `<a href="${currentSelectedCase.docLink}" target="_blank" class="badge" style="background:#6366f1; color:#fff; text-decoration:none;"><i class="fa-solid fa-file-lines"></i> Googledokument</a> `;
+    }
+    if (currentSelectedCase.akutaLink) {
+        linksRow.innerHTML += `<a href="${currentSelectedCase.akutaLink}" target="_blank" class="badge" style="background:#10b981; color:#fff; text-decoration:none;"><i class="fa-solid fa-notes-medical"></i> Akutasjukdomar.se</a> `;
     }
 }
 
-function initChart(salesData) {
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    
-    let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); 
-    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+function markCaseResult(passed) {
+    if (!currentSelectedCase) return;
 
-    chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: salesData.month.labels,
-            datasets: [{
-                label: 'Försäljning (Orders)',
-                data: salesData.month.data,
-                borderColor: '#3b82f6',
-                backgroundColor: gradient,
-                borderWidth: 3,
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: '#0f172a',
-                pointBorderColor: '#3b82f6',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
-                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-            }
+    if (passed) {
+        caseStatuses[currentSelectedCase.id] = "green";
+        userScore += 10;
+        userStreak += 1;
+        if (window.confetti) {
+            window.confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
         }
-    });
+    } else {
+        caseStatuses[currentSelectedCase.id] = "red";
+        userStreak = 0;
+    }
 
-    // Skapa en global funktion för att triggas av knapparna
-    window.updateChart = function(period) {
-        document.querySelectorAll('.btn-time').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
-        chartInstance.data.labels = currentData.sales_data[period].labels;
-        chartInstance.data.datasets[0].data = currentData.sales_data[period].data;
-        chartInstance.update();
-    };
+    const srs = scheduleCase(currentSelectedCase.id, passed);
+
+    localStorage.setItem("medical_wheel_statuses", JSON.stringify(caseStatuses));
+    localStorage.setItem("medical_wheel_score", userScore.toString());
+    localStorage.setItem("medical_wheel_streak", userStreak.toString());
+
+    updateScoreUI();
+    logTraining(currentSelectedCase, passed, srs);
+    closeMysteryModal();
+    applyFilters();
+    renderTimeline();
 }
 
-function populateTable(products) {
-    const tbody = document.querySelector('#trending-table tbody');
-    tbody.innerHTML = '';
-    
-    products.forEach(prod => {
-        // Amazon avgifter = 15%, plus $4 i fast tracking/frakt kostnad pga Temu långsamhet
-        const amazonFees = prod.amazon_price * 0.15;
-        const totalCost = prod.temu_price + amazonFees + 4.00;
-        const profit = prod.amazon_price - totalCost;
-        const profitMargin = ((profit / prod.amazon_price) * 100).toFixed(1);
-        
-        let hypeClass = "med";
-        let hypeIcon = "fa-fire-flame-simple";
-        if(prod.hype === "Extreme") { hypeClass = "high"; hypeIcon = "fa-fire"; }
-
-        const row = `
-            <tr>
-                <td><img src="${prod.image}" alt="${prod.title}" class="prod-img"></td>
-                <td>#${prod.rank}</td>
-                <td><span class="trend-badge ${hypeClass}"><i class="fa-solid ${hypeIcon}"></i> ${prod.hype}</span></td>
-                <td><strong>${prod.title}</strong><br><small><a href="${prod.source_temu}" style="color:#fbbf24;" target="_blank">Inköpspris (Temu)</a> | <a href="${prod.source_amazon}" style="color:#60a5fa;" target="_blank">Säljpris (Amazon)</a></small></td>
-                <td>$${prod.temu_price.toFixed(2)}</td>
-                <td>$${prod.amazon_price.toFixed(2)}</td>
-                <td class="profit-margin">+$${profit.toFixed(2)} (${profitMargin}%)</td>
-            </tr>
-        `;
-        tbody.innerHTML += row;
+/* ==========================================================================
+   TIDSLINJE — varje träningstillfälle sparas med tidsstämpel
+   ========================================================================== */
+function logTraining(c, passed, srs) {
+    trainingLog.unshift({
+        id: c.id,
+        number: c.number || c.rowIndex,
+        title: c.title,
+        passed: passed,
+        at: new Date().toISOString(),
+        due: srs ? srs.due : null,
+        reps: srs ? srs.reps : 0
     });
+    trainingLog = trainingLog.slice(0, 300);
+    localStorage.setItem("medical_wheel_log", JSON.stringify(trainingLog));
+}
+
+function renderTimeline() {
+    const container = document.getElementById("historyContainer");
+    const summary = document.getElementById("timelineSummary");
+    if (!container) return;
+
+    if (summary) {
+        const dueNow = allMedicalCases.filter(c => isDue(c.id)).length;
+        summary.innerHTML = `<span>${trainingLog.length} träningstillfällen</span><span class="due-chip">⏰ ${dueNow} att repetera nu</span>`;
+    }
+
+    if (!trainingLog.length) {
+        container.innerHTML = `<div class="empty-state">Snurra hjulet för att börja utmana dig själv!</div>`;
+        return;
+    }
+
+    container.innerHTML = "";
+    let lastDay = null;
+
+    trainingLog.forEach(entry => {
+        const day = new Date(entry.at).toLocaleDateString("sv-SE", { weekday: "long", day: "numeric", month: "long" });
+        if (day !== lastDay) {
+            lastDay = day;
+            const header = document.createElement("div");
+            header.className = "timeline-day";
+            header.innerText = day;
+            container.appendChild(header);
+        }
+
+        const item = document.createElement("div");
+        item.className = `history-item timeline-item ${entry.passed ? "pass" : "fail"}`;
+        item.innerHTML = `
+            <div class="timeline-main">
+                <strong>#${entry.number}</strong>
+                <span class="timeline-title">${entry.title}</span>
+            </div>
+            <div class="timeline-meta">
+                <span class="timeline-time">${formatStamp(entry.at)}</span>
+                <span class="timeline-result">${entry.passed ? "🟢 Klarad" : "🔴 Ej klarad"}</span>
+                ${entry.due ? `<span class="timeline-due">🔁 repetera ${formatRelative(entry.due)}</span>` : ""}
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function closeMysteryModal() {
+    document.getElementById("modalMystery")?.classList.remove("active");
 }

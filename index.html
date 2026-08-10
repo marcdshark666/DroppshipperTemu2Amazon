@@ -3,220 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dropship Monitor | Temu2Amazon</title>
+    <title>Medicinskt Snurrhjul | Fallutmaning & Diagnoser</title>
     <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js för gratis grafer -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="style-adds.css">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <aside class="sidebar glass">
-            <div class="logo">
-                <i class="fa-solid fa-chart-line"></i> D-Monitor
+
+    <!-- Header Navigation Bar -->
+    <header class="app-header">
+        <div class="brand-container">
+            <div class="brand-logo">
+                <i class="fa-solid fa-dharmachakra" style="color:#6366f1;"></i>
             </div>
-            <nav id="nav-menu">
-                <a href="#" data-target="view-overview" class="active"><i class="fa-solid fa-house"></i> Översikt</a>
-                <a href="#" data-target="view-trending"><i class="fa-solid fa-fire"></i> Trendande Live</a>
-                <a href="#" data-target="view-tools"><i class="fa-solid fa-magnifying-glass-chart"></i> Gratis Analys</a>
-                <a href="#" data-target="view-automation"><i class="fa-solid fa-robot"></i> System & Setup</a>
-            </nav>
-            <div class="sidebar-footer">
-                <p class="status-indicator"><span class="dot green"></span> System Online</p>
-                <p class="last-updated" id="sidebar-updated-time">Hämtar data...</p>
+            <div>
+                <h1 class="brand-title">Medicinskt Snurrhjul</h1>
+                <p class="brand-subtitle">Google Sheets Fallutmaning & Akutdiagnoser</p>
+            </div>
+        </div>
+
+        <div class="header-stats">
+            <div class="stat-badge stat-score" title="Total poäng">
+                <i class="fa-solid fa-trophy"></i>
+                <span id="scoreDisplay">0 p</span>
+            </div>
+            <div class="stat-badge stat-streak" title="Klarade fall i rad">
+                <i class="fa-solid fa-fire"></i>
+                <span id="streakDisplay">0 streak</span>
+            </div>
+            <div class="stat-badge stat-sheet" title="Google Sheet synkstatus">
+                <i class="fa-solid fa-arrows-rotate" id="syncIcon"></i>
+                <span id="syncStatus">Laddar fall...</span>
+            </div>
+            <button class="btn-header" id="btnOpenSettings">
+                <i class="fa-paper-plane fa-solid"></i> Telegram & Inställningar
+            </button>
+        </div>
+    </header>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        
+        <!-- Left Sidebar Filter Panel -->
+        <aside class="sidebar-panel glass-panel">
+            <div class="panel-section">
+                <h3><i class="fa-solid fa-sliders"></i> Hjulinställningar</h3>
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggleShowTitles">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">Visa titlar på snurrhjulet</span>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3><i class="fa-solid fa-filter"></i> Statusfilter</h3>
+                <div class="filter-pills">
+                    <button class="pill-btn active" data-status="all">Alla (<span id="countAll">0</span>)</button>
+                    <button class="pill-btn" data-status="green">🟢 Klarade (<span id="countGreen">0</span>)</button>
+                    <button class="pill-btn" data-status="red">🔴 Ej klarade (<span id="countRed">0</span>)</button>
+                    <button class="pill-btn" data-status="untested">🔵 Ej testade (<span id="countUntested">0</span>)</button>
+                    <button class="pill-btn" data-status="due">⏰ Att repetera (<span id="countDue">0</span>)</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3><i class="fa-solid fa-star" style="color:#ff5555;"></i> Akutfall & C-märkning</h3>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkRedCOnly">
+                    <span>Endast Röd C-stjärna (Akutfall)</span>
+                </label>
+            </div>
+
+            <div class="panel-section">
+                <h3><i class="fa-solid fa-layer-group"></i> Kategorier</h3>
+                <div class="category-list" id="categoryContainer">
+                    <!-- Dynamic Category Checkboxes -->
+                </div>
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <header class="topbar glass">
-                <h1 id="page-title">Översikt - Profit & Trender</h1>
-                <div class="user-profile">
-                    <span>Välkommen, Marc</span>
-                    <i class="fa-solid fa-user-astronaut"></i>
-                </div>
-            </header>
-
-            <!-- VIEW: ÖVERSIKT -->
-            <div id="view-overview" class="view active">
-                <div class="kpi-cards">
-                    <div class="kpi-card glass">
-                        <h3>Dagens Vinst</h3>
-                        <p class="amount" id="daily-profit">$0</p>
-                        <span class="trend" id="daily-trend">Laddar...</span>
-                    </div>
-                    <div class="kpi-card glass">
-                        <h3>Veckans Försäljning</h3>
-                        <p class="amount" id="weekly-sales">0</p>
-                        <span class="trend" id="weekly-trend">Laddar...</span>
-                    </div>
-                    <div class="kpi-card glass">
-                        <h3>Totalt Året (2026)</h3>
-                        <p class="amount" id="yearly-profit">$0</p>
-                    </div>
-                </div>
-
-                <div class="chart-section">
-                    <div class="chart-container glass main-chart">
-                        <div class="chart-header">
-                            <h2>Försäljning & Vinst</h2>
-                            <div class="chart-controls">
-                                <button class="btn-time" onclick="updateChart('day')">Dag</button>
-                                <button class="btn-time" onclick="updateChart('week')">Vecka</button>
-                                <button class="btn-time active" onclick="updateChart('month')">Månad</button>
-                            </div>
-                        </div>
-                        <canvas id="salesChart"></canvas>
-                    </div>
+        <!-- Center Wheel Container -->
+        <main class="wheel-main glass-panel">
+            <div class="wheel-header">
+                <h2><i class="fa-solid fa-dharmachakra" style="color:#6366f1;"></i> Lyckohjul — Välj ett fall</h2>
+                <div class="active-count-badge">
+                    <span id="activeCasesCount">0</span> fall laddade på hjulet
                 </div>
             </div>
 
-            <!-- VIEW: TRENDANDE PRODUKTER -->
-            <div id="view-trending" class="view">
-                <div class="view-header">
-                    <h2><i class="fa-solid fa-fire"></i> Live Dataskrapade Produkter</h2>
-                    <p class="data-source-info">Datakälla: <span id="data-source-text">Laddar...</span> | Uppdaterades: <strong id="data-updated-text">...</strong></p>
-                </div>
-                
-                <div class="trending-table-container glass">
-                    <table class="trending-table" id="trending-table">
-                        <thead>
-                            <tr>
-                                <th>Bild</th>
-                                <th>Rank</th>
-                                <th>Plattformsvolym</th>
-                                <th>Produktnamn</th>
-                                <th>Inköp (Temu)</th>
-                                <th>Säljpris (Amazon)</th>
-                                <th>Est. Marginal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Genereras via app.js -->
-                        </tbody>
-                    </table>
-                </div>
+            <div class="wheel-wrapper">
+                <div class="wheel-pointer">▼</div>
+                <canvas id="wheelCanvas"></canvas>
             </div>
 
-            <!-- VIEW: GRATIS ANALYS & VERKTYG -->
-            <div id="view-tools" class="view">
-                <div class="glass automation-container">
-                    <h2><i class="fa-solid fa-magnifying-glass-chart"></i> Gratis Verktyg för Global Marknadsanalys</h2>
-                    <p class="summary-text">Använd dessa sidor för att se vad som produceras i Asien och reselling-trender i Europa och Nordamerika – helt kostnadsfritt.</p>
-                    
-                    <div class="tool-grid">
-                        <div class="tool-card">
-                            <i class="fa-brands fa-amazon tool-icon"></i>
-                            <h3>1. Amazon Opportunity Explorer</h3>
-                            <p><strong>Bäst för:</strong> Exakt sökdata från plattformen.</p>
-                            <p>Detta är Amazons egna, inbyggda verktyg i "Seller Central". Det visar vad kunder skriver in i sökfältet i olika regioner (USA, EU, etc) där tillgången inte matchar efterfrågan.</p>
-                            <a href="https://sellercentral.amazon.com/opportunity-explorer" target="_blank" class="btn-tool">Öppna <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-                        </div>
-                        
-                        <div class="tool-card">
-                            <i class="fa-solid fa-chart-area tool-icon" style="color: #6366f1;"></i>
-                            <h3>2. Keepa (Gratisversionen)</h3>
-                            <p><strong>Bäst för:</strong> Pris- och Rankningshistorik.</p>
-                            <p>Ett webbläsartillägg som ger dig en graf inuti Amazon. Den avslöjar om "trendiga" varor bara är en bluff-rea eller om Best Seller Ranken (BSR) är stabil över hela året.</p>
-                            <a href="https://keepa.com/" target="_blank" class="btn-tool">Ladda ner Keepa <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-                        </div>
-
-                        <div class="tool-card">
-                            <i class="fa-solid fa-globe tool-icon" style="color: #ec4899;"></i>
-                            <h3>3. AliExpress Dropshipping Center</h3>
-                            <p><strong>Bäst för:</strong> Trendspaning i Asien / B2B inköp.</p>
-                            <p>AliExpress har ett "dolt" verktyg skapat just för oss. Här kan du sortera på exakt hur många gånger en produkt sålts under dagen/veckan. Bra för att hitta vinnare INNAN de når USA.</p>
-                            <a href="https://home.aliexpress.com/dropshippercenter" target="_blank" class="btn-tool">Gå till Dropship Center <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-                        </div>
-                        
-                        <div class="tool-card">
-                            <i class="fa-solid fa-x-ray tool-icon" style="color: #3b82f6;"></i>
-                            <h3>4. Helium 10 X-Ray</h3>
-                            <p><strong>Bäst för:</strong> Estimerad försäljningsvolym per månad.</p>
-                            <p>Det gratis Chromium-tillägget Helium 10 Xray används för att titta på en sökning (t.ex. 'Desk Lamp') på Amazon och direkt se exakt hur många miljoner dollar sidan omsätter per månad.</p>
-                            <a href="https://www.helium10.com/" target="_blank" class="btn-tool">Hämta Extension <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-                        </div>
-                    </div>
-                </div>
+            <div class="wheel-controls">
+                <button class="btn-spin" id="btnSpin">
+                    <i class="fa-solid fa-play"></i> SNURRA HJULET!
+                </button>
             </div>
 
-            <!-- VIEW: AUTOMATION SETUP / AFFILIATE VS DROPSHIPPING -->
-            <div id="view-automation" class="view">
-                <div class="glass automation-container">
-                    <h2><i class="fa-solid fa-robot"></i> $0 Affiliate vs. Dropshipping System</h2>
-                    <p class="summary-text">Välj din arkitektur. Vill du sälja direkt på Amazon (kräver kapital för inköp) ELLER agera som mellanhand för 0 kr risk?</p>
-                    
-                    <div class="business-models-grid">
-                        
-                        <!-- Affiliate Model -->
-                        <div class="model-box model-affiliate">
-                            <div class="model-header">
-                                <span class="badge badge-zero">$0 Risk</span>
-                                <h3>Affiliate Marketing (AliExpress Portals / Amazon Associates)</h3>
-                            </div>
-                            <div class="model-body">
-                                <p><strong>Hur det fungerar:</strong> Kunden trycker på din länk på din sociala media eller hemsida. De köper varan och <em>betalar direkt till leverantören</em> (AliExpress/Amazon). Systemet ser att de kom via din kod och ger dig en procentsats (3-10%).</p>
-                                <ul>
-                                    <li><i class="fa-solid fa-check text-green"></i> <strong>Kostnad för dig:</strong> 0 Kr.</li>
-                                    <li><i class="fa-solid fa-check text-green"></i> Måste inte vänta på Amazons utbetalningstider.</li>
-                                    <li><i class="fa-solid fa-check text-green"></i> Du hanterar INGA returer eller irriterade kunder.</li>
-                                    <li><i class="fa-solid fa-xmark text-red"></i> Lägre vinstmarginal per produkt.</li>
-                                </ul>
-                                <div class="step-guide">
-                                    <h4><i class="fa-solid fa-gears"></i> Setup Guide:</h4>
-                                    <ol>
-                                        <li>Skapa gratis konto på <strong>AliExpress Portals</strong>.</li>
-                                        <li>Hitta en trendande produkt i vår "Gratis Analys"-flik.</li>
-                                        <li>Generera en Tracking-länk i portalen.</li>
-                                        <li>Klipp in länken bredvid produkten på din hemsida. Ta betalt av AliExpress när köpet sker.</li>
-                                    </ol>
-                                    <div style="margin-top: 1rem;">
-                                        <iframe width="100%" height="200" src="https://www.youtube.com/embed?listType=search&list=aliexpress+affiliate+marketing+tutorial" title="AliExpress Affiliate Guide" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:8px;"></iframe>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Dropshipping Model -->
-                        <div class="model-box model-dropshipping">
-                            <div class="model-header">
-                                <span class="badge badge-pro">Högre Profit</span>
-                                <h3>Amazon Dropshipping (AutoDS Integration)</h3>
-                            </div>
-                            <div class="model-body">
-                                <p><strong>Hur det fungerar:</strong> Du öppnar en butik på Amazon. Kunden köper och betalar till Amazon. Amazon skyddar kundens pengar i två veckor. Du använder <em>dina egna pengar</em> för att betala AliExpress för produkten och skicka den. Din vinst blir mellanskillnaden.</p>
-                                <ul>
-                                    <li><i class="fa-solid fa-xmark text-red"></i> <strong>Kostnad för dig:</strong> Kräver budget (kredit) för att köpa in varor.</li>
-                                    <li><i class="fa-solid fa-check text-green"></i> Högre potentiell uppsida och profit.</li>
-                                    <li><i class="fa-solid fa-xmark text-red"></i> Du är ansvarig för returer, trasiga varor och Amazon Policy Violations.</li>
-                                </ul>
-                                <div class="step-guide">
-                                    <h4><i class="fa-solid fa-gears"></i> Setup Guide:</h4>
-                                    <ol>
-                                        <li>Skapa <strong>Amazon Seller Central Account</strong>.</li>
-                                        <li>Skapa ett <strong>AutoDS Konto</strong> för att synkronisera lagersaldon automatiskt.</li>
-                                        <li>Importera AliExpress artiklar till AutoDS.</li>
-                                        <li>Länka Amazon och slå på Auto-Fulfillment knappen.</li>
-                                    </ol>
-                                    <div style="margin-top: 1rem;">
-                                        <iframe width="100%" height="200" src="https://www.youtube.com/embed/G10YcFf4fgI" title="AutoDS x Amazon Setup" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:8px;"></iframe>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                    
+            <!-- Fallrad: scrolla igenom alla fall och färgsätt direkt -->
+            <div class="case-strip-wrap">
+                <div class="case-strip-header">
+                    <h4><i class="fa-solid fa-list-ol"></i> Alla fall — tryck siffran för att öppna, prickarna för att färgsätta</h4>
                 </div>
+                <div class="case-strip" id="caseStrip"></div>
             </div>
-
         </main>
+
+        <!-- Right Side Leaderboard & History Stream -->
+        <aside class="right-panel glass-panel">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Träningstidslinje</h3>
+            <div class="timeline-summary" id="timelineSummary"></div>
+            <div class="history-list timeline" id="historyContainer">
+                <div class="empty-state">Snurra hjulet för att börja utmana dig själv!</div>
+            </div>
+            <button class="btn-clear-history" id="btnClearHistory">
+                <i class="fa-solid fa-trash-can"></i> Rensa tidslinjen
+            </button>
+        </aside>
+
     </div>
+
+    <!-- Modal: Dold Diagnos (Mystery Case Reveal) -->
+    <div class="modal-overlay" id="modalMystery">
+        <div class="modal-card">
+            <div class="modal-header">
+                <span class="modal-title" id="modalCaseNumber">Fall #--</span>
+                <span class="modal-badge" id="modalCategory" style="display:none;">Kategori</span>
+                <button class="btn-close-modal" id="btnCloseMystery"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Anamnes/scenario är ALDRIG synlig före avslöjandet (nolltips-regeln) -->
+                <div class="scenario-box" id="scenarioBox" style="display:none;">
+                    <h4><i class="fa-solid fa-user-ninja"></i> Klinisk Anamnes & Case Scenario:</h4>
+                    <p id="modalScenarioText"></p>
+                </div>
+
+                <!-- Hidden Mystery Box -->
+                <div class="mystery-box" id="mysteryBox">
+                    <div class="mystery-blur-content" id="mysteryContent" style="display:none;">
+                        <h3 class="diagnosis-title" id="modalDiagnosisTitle">Diagnos</h3>
+                        
+                        <div class="mnemonic-box" id="modalMnemonicBox" style="display:none;">
+                            <strong>Kom ihåg / Mnemonic:</strong> <span id="modalMnemonic"></span>
+                        </div>
+
+                        <div class="notes-box" id="modalNotesBox" style="display:none;">
+                            <strong>Noteringar:</strong> <span id="modalNotes"></span>
+                        </div>
+
+                        <div class="links-row" id="modalLinksRow">
+                            <!-- Dynamic Document Links -->
+                        </div>
+                    </div>
+
+                    <p class="mystery-prompt" id="mysteryPrompt">Ställ din diagnos i huvudet först.</p>
+
+                    <button class="btn-reveal" id="btnRevealDiagnosis">
+                        <i class="fa-solid fa-eye"></i> Avslöja Diagnos
+                    </button>
+                </div>
+
+                <!-- Evaluation Buttons -->
+                <div class="eval-row" id="evalRow" style="display:none;">
+                    <button class="btn-eval btn-pass" id="btnMarkPass">
+                        <i class="fa-solid fa-circle-check"></i> Klarade (🟢 +10p)
+                    </button>
+                    <button class="btn-eval btn-fail" id="btnMarkFail">
+                        <i class="fa-solid fa-circle-xmark"></i> Ej Klarat (🔴)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="wheel.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

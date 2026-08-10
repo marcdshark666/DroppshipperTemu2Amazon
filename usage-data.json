@@ -1,0 +1,235 @@
+{
+  "currency": {
+    "usd_to_sek": 10.45,
+    "last_updated": "2026-08-09T23:13:00Z"
+  },
+  "models": {
+    "claude_code": {
+      "id": "claude_code",
+      "name": "Claude Code",
+      "badge": "Huvudmodell",
+      "color": "#ff79c6",
+      "gradient": "linear-gradient(135deg, #ff79c6, #bd93f9)",
+      "token_cost_per_1k": 0.006,
+      "limits": {
+        "daily": 1000000,
+        "weekly": 7000000,
+        "monthly": 30000000
+      },
+      "used": {
+        "daily": 680000,
+        "weekly": 4200000,
+        "monthly": 18500000
+      },
+      "stats": {
+        "total_prompts": 342,
+        "avg_response_time": "1.4s",
+        "total_cost_usd": 111.00,
+        "total_cost_sek": 1159.95
+      }
+    },
+    "antigravity": {
+      "id": "antigravity",
+      "name": "Antigravity",
+      "badge": "Gratisläge / Reserv 2",
+      "color": "#50fa7b",
+      "gradient": "linear-gradient(135deg, #50fa7b, #00f2fe)",
+      "token_cost_per_1k": 0.0005,
+      "limits": {
+        "daily": 500000,
+        "weekly": 3500000,
+        "monthly": 15000000
+      },
+      "used": {
+        "daily": 120000,
+        "weekly": 950000,
+        "monthly": 4100000
+      },
+      "stats": {
+        "total_prompts": 188,
+        "avg_response_time": "0.8s",
+        "total_cost_usd": 2.05,
+        "total_cost_sek": 21.42
+      }
+    },
+    "codex": {
+      "id": "codex",
+      "name": "Codex",
+      "badge": "Reservmodell 1",
+      "color": "#8be9fd",
+      "gradient": "linear-gradient(135deg, #8be9fd, #6272a4)",
+      "token_cost_per_1k": 0.0025,
+      "limits": {
+        "daily": 800000,
+        "weekly": 5000000,
+        "monthly": 20000000
+      },
+      "used": {
+        "daily": 450000,
+        "weekly": 2800000,
+        "monthly": 11200000
+      },
+      "stats": {
+        "total_prompts": 256,
+        "avg_response_time": "1.1s",
+        "total_cost_usd": 28.00,
+        "total_cost_sek": 292.60
+      }
+    },
+    "video_generator": {
+      "id": "video_generator",
+      "name": "Videogenerering (AI Video)",
+      "badge": "Media Generator",
+      "color": "#ffb86c",
+      "gradient": "linear-gradient(135deg, #ffb86c, #ff5555)",
+      "video_cost_per_gen": 0.15,
+      "limits": {
+        "daily": 50,
+        "weekly": 300,
+        "monthly": 1200
+      },
+      "used": {
+        "daily": 18,
+        "weekly": 142,
+        "monthly": 580
+      },
+      "stats": {
+        "total_videos_created": 580,
+        "total_seconds_rendered": 5800,
+        "total_cost_usd": 87.00,
+        "total_cost_sek": 909.15
+      }
+    }
+  },
+  "top_topics": [
+    { "topic": "Droppshipping Temu2Amazon E-handel", "count": 48, "percentage": 32, "primary_model": "Claude Code" },
+    { "topic": "Refaktorera Python & Node.js API Backend", "count": 36, "percentage": 24, "primary_model": "Codex" },
+    { "topic": "Generera 3D-animations-videor & Prompter", "count": 29, "percentage": 19, "primary_model": "Videogenerering" },
+    { "topic": "Bygga Telegram-bot & Tvärkommunikation", "count": 22, "percentage": 15, "primary_model": "Antigravity" },
+    { "topic": "Vercel Live Deployment & Serverless", "count": 15, "percentage": 10, "primary_model": "Claude Code" }
+  ],
+  "daily_usage_history": [
+    { "date": "2026-07-27", "claude_tokens": 520000, "codex_tokens": 310000, "antigravity_tokens": 80000, "videos": 12, "cost_usd": 5.80 },
+    { "date": "2026-07-28", "claude_tokens": 610000, "codex_tokens": 400000, "antigravity_tokens": 110000, "videos": 15, "cost_usd": 6.90 },
+    { "date": "2026-07-29", "claude_tokens": 580000, "codex_tokens": 380000, "antigravity_tokens": 95000, "videos": 10, "cost_usd": 5.95 },
+    { "date": "2026-07-30", "claude_tokens": 710000, "codex_tokens": 490000, "antigravity_tokens": 130000, "videos": 22, "cost_usd": 8.75 },
+    { "date": "2026-07-31", "claude_tokens": 690000, "codex_tokens": 420000, "antigravity_tokens": 105000, "videos": 18, "cost_usd": 7.89 },
+    { "date": "2026-08-01", "claude_tokens": 450000, "codex_tokens": 290000, "antigravity_tokens": 60000, "videos": 8, "cost_usd": 4.62 },
+    { "date": "2026-08-02", "claude_tokens": 480000, "codex_tokens": 310000, "antigravity_tokens": 75000, "videos": 11, "cost_usd": 5.30 },
+    { "date": "2026-08-03", "claude_tokens": 720000, "codex_tokens": 460000, "antigravity_tokens": 140000, "videos": 24, "cost_usd": 9.07 },
+    { "date": "2026-08-04", "claude_tokens": 650000, "codex_tokens": 430000, "antigravity_tokens": 115000, "videos": 16, "cost_usd": 7.37 },
+    { "date": "2026-08-05", "claude_tokens": 740000, "codex_tokens": 510000, "antigravity_tokens": 150000, "videos": 25, "cost_usd": 9.46 },
+    { "date": "2026-08-06", "claude_tokens": 630000, "codex_tokens": 390000, "antigravity_tokens": 100000, "videos": 14, "cost_usd": 6.85 },
+    { "date": "2026-08-07", "claude_tokens": 690000, "codex_tokens": 470000, "antigravity_tokens": 125000, "videos": 20, "cost_usd": 8.31 },
+    { "date": "2026-08-08", "claude_tokens": 760000, "codex_tokens": 520000, "antigravity_tokens": 160000, "videos": 28, "cost_usd": 10.06 },
+    { "date": "2026-08-09", "claude_tokens": 680000, "codex_tokens": 450000, "antigravity_tokens": 120000, "videos": 18, "cost_usd": 7.90 }
+  ],
+  "timeline_logs": [
+    {
+      "id": "log-101",
+      "timestamp": "2026-08-09T23:10:15Z",
+      "model": "Claude Code",
+      "model_id": "claude_code",
+      "prompt": "Skapa en 3D-dashboard för Vercel för att se alla mina tokens kvar idag, i veckan och i månaden samt alla pengar.",
+      "tokens_used": 14500,
+      "cost_usd": 0.087,
+      "cost_sek": 0.909,
+      "category": "Webbapplikation & 3D",
+      "status": "Framgångsrik",
+      "duration": "1.2s"
+    },
+    {
+      "id": "log-102",
+      "timestamp": "2026-08-09T22:45:00Z",
+      "model": "Videogenerering",
+      "model_id": "video_generator",
+      "prompt": "Generera en 10-sekunders cinematic 3D promo-video för DroppshipperTemu2Amazon med neonljus och cybereffekter.",
+      "tokens_used": 0,
+      "videos_rendered": 1,
+      "cost_usd": 0.15,
+      "cost_sek": 1.567,
+      "category": "AI Video Generation",
+      "status": "Klar (1080p)",
+      "duration": "14.5s"
+    },
+    {
+      "id": "log-103",
+      "timestamp": "2026-08-09T22:00:12Z",
+      "model": "Antigravity",
+      "model_id": "antigravity",
+      "prompt": "Telegram-nattfråga: Vilket projekt ska bearbetas ikväll under nattkörningen?",
+      "tokens_used": 4200,
+      "cost_usd": 0.002,
+      "cost_sek": 0.021,
+      "category": "Telegram Bot & Nattregler",
+      "status": "Skickat",
+      "duration": "0.6s"
+    },
+    {
+      "id": "log-104",
+      "timestamp": "2026-08-09T21:15:40Z",
+      "model": "Codex",
+      "model_id": "codex",
+      "prompt": "Refaktorera Python API-endpoints för Temu skrapning och Amazon BSR vinstberäkning.",
+      "tokens_used": 18200,
+      "cost_usd": 0.0455,
+      "cost_sek": 0.475,
+      "category": "Backend & Skrapning",
+      "status": "Framgångsrik",
+      "duration": "1.8s"
+    },
+    {
+      "id": "log-105",
+      "timestamp": "2026-08-09T19:30:22Z",
+      "model": "Claude Code",
+      "model_id": "claude_code",
+      "prompt": "Generera automatiskt 3D canvas-snurrhjul med ljudeffekter och Telegram-integration.",
+      "tokens_used": 28400,
+      "cost_usd": 0.1704,
+      "cost_sek": 1.78,
+      "category": "Frontend UI/UX",
+      "status": "Framgångsrik",
+      "duration": "2.4s"
+    },
+    {
+      "id": "log-106",
+      "timestamp": "2026-08-09T18:10:05Z",
+      "model": "Videogenerering",
+      "model_id": "video_generator",
+      "prompt": "Skapa produktvideo i 3D för Smart posture corrector med före-och-efter jämförelse.",
+      "tokens_used": 0,
+      "videos_rendered": 1,
+      "cost_usd": 0.15,
+      "cost_sek": 1.567,
+      "category": "AI Video Generation",
+      "status": "Klar (1080p)",
+      "duration": "18.2s"
+    },
+    {
+      "id": "log-107",
+      "timestamp": "2026-08-09T16:50:33Z",
+      "model": "Codex",
+      "model_id": "codex",
+      "prompt": "Optimera SQL-databasfrågor för tidslinjeloggar och aggregering av token-gränser.",
+      "tokens_used": 12600,
+      "cost_usd": 0.0315,
+      "cost_sek": 0.329,
+      "category": "Databas & Prestanda",
+      "status": "Framgångsrik",
+      "duration": "1.1s"
+    },
+    {
+      "id": "log-108",
+      "timestamp": "2026-08-09T14:20:11Z",
+      "model": "Antigravity",
+      "model_id": "antigravity",
+      "prompt": "Kör automatisk hälsokontroll av systemets minne och uppdatera MEMORY.md.",
+      "tokens_used": 6800,
+      "cost_usd": 0.0034,
+      "cost_sek": 0.035,
+      "category": "System & Minne",
+      "status": "Framgångsrik",
+      "duration": "0.7s"
+    }
+  ]
+}
