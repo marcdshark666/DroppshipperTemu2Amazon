@@ -15,7 +15,68 @@ const MIME_TYPES = {
     '.svg': 'image/svg+xml'
 };
 
+// Lokal motsvarighet till /api/state (produktion använder Vercel Blob).
+// Lagras i sync-data/ som ligger i .gitignore.
+const SYNC_DIR = path.join(ROOT, 'sync-data');
+const KEY_PATTERN = /^[a-zA-Z0-9_-]{4,64}$/;
+
+function handleSyncApi(req, res, query) {
+    const key = new URLSearchParams(query).get('key') || '';
+    res.setHeader('Cache-Control', 'no-store');
+
+    if (!KEY_PATTERN.test(key)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: false, error: 'Ogiltig synknyckel.' }));
+    }
+
+    const file = path.join(SYNC_DIR, `${key}.json`);
+
+    if (req.method === 'GET') {
+        fs.readFile(file, 'utf8', (err, raw) => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            if (err) return res.end(JSON.stringify({ ok: true, data: null, updatedAt: null }));
+            try {
+                const data = JSON.parse(raw);
+                res.end(JSON.stringify({ ok: true, data, updatedAt: data.updatedAt || null }));
+            } catch (e) {
+                res.end(JSON.stringify({ ok: false, error: 'Trasig sparfil.' }));
+            }
+        });
+        return;
+    }
+
+    if (req.method === 'POST' || req.method === 'PUT') {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk;
+            if (body.length > 512 * 1024) req.destroy();
+        });
+        req.on('end', () => {
+            try {
+                const payload = JSON.parse(body);
+                const updatedAt = new Date().toISOString();
+                fs.mkdirSync(SYNC_DIR, { recursive: true });
+                fs.writeFileSync(file, JSON.stringify({ ...payload, updatedAt }));
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true, updatedAt }));
+            } catch (e) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: String(e.message) }));
+            }
+        });
+        return;
+    }
+
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: 'Metoden stöds inte.' }));
+}
+
 const server = http.createServer((req, res) => {
+    const [rawPath, query = ''] = req.url.split('?');
+    if (decodeURIComponent(rawPath) === '/api/state') {
+        return handleSyncApi(req, res, query);
+    }
+
     const urlPath = decodeURIComponent(req.url.split('?')[0]);
     const safePath = path.normalize(urlPath).replace(/^([/\\]|\.\.)+/, '');
     let filePath = path.join(ROOT, safePath || 'index.html');

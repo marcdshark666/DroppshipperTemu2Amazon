@@ -62,6 +62,22 @@
             </div>
 
             <div class="panel-section">
+                <h3><i class="fa-solid fa-cloud-arrow-up"></i> Serversynk</h3>
+                <p class="sync-help">Välj en egen synknyckel så sparas dina fall, repetitioner och tidslinje på servern — samma data på dator och mobil.</p>
+                <div class="sync-row">
+                    <input type="text" id="syncKeyInput" placeholder="t.ex. marc-bt-2026" autocomplete="off" spellcheck="false">
+                    <button class="btn-sync" id="btnSyncSave" title="Spara nyckel och synka">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+                <div class="sync-actions">
+                    <button class="btn-sync-mini" id="btnSyncPull"><i class="fa-solid fa-cloud-arrow-down"></i> Hämta från server</button>
+                    <button class="btn-sync-mini" id="btnSyncPush"><i class="fa-solid fa-cloud-arrow-up"></i> Spara till server</button>
+                </div>
+                <div class="sync-state" id="syncState">Serversynk av — data sparas bara lokalt.</div>
+            </div>
+
+            <div class="panel-section">
                 <h3><i class="fa-solid fa-filter"></i> Statusfilter</h3>
                 <div class="filter-pills">
                     <button class="pill-btn active" data-status="all">Alla (<span id="countAll">0</span>)</button>
@@ -109,7 +125,7 @@
             </div>
 
             <!-- Fallrad: scrolla igenom alla fall och färgsätt direkt -->
-            <details class="case-strip-wrap" id="caseStripWrap">
+            <details class="case-strip-wrap" id="caseStripWrap" open>
                 <summary class="case-strip-header">
                     <i class="fa-solid fa-list-ol"></i> Alla fall — tryck siffran för att öppna, prickarna för att färgsätta
                 </summary>

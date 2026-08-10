@@ -19,7 +19,131 @@ document.addEventListener("DOMContentLoaded", () => {
     initEventListeners();
     updateScoreUI();
     renderTimeline();
+    initSync();
 });
+
+/* ==========================================================================
+   SERVERSYNK — samma data på dator och mobil via /api/state
+   Nyckeln sparas lokalt; utan nyckel körs allt precis som förut (localStorage).
+   ========================================================================== */
+let syncKey = localStorage.getItem("medical_wheel_synckey") || "";
+let syncTimer = null;
+
+function setSyncState(text, kind) {
+    const el = document.getElementById("syncState");
+    if (!el) return;
+    el.innerText = text;
+    el.className = `sync-state ${kind || ""}`;
+}
+
+function collectState() {
+    return {
+        statuses: caseStatuses,
+        srs: srsData,
+        log: trainingLog,
+        score: userScore,
+        streak: userStreak
+    };
+}
+
+function applyState(state) {
+    if (!state || typeof state !== "object") return false;
+
+    caseStatuses = state.statuses || {};
+    srsData = state.srs || {};
+    trainingLog = Array.isArray(state.log) ? state.log : [];
+    userScore = parseInt(state.score || 0, 10);
+    userStreak = parseInt(state.streak || 0, 10);
+
+    localStorage.setItem("medical_wheel_statuses", JSON.stringify(caseStatuses));
+    localStorage.setItem("medical_wheel_srs", JSON.stringify(srsData));
+    localStorage.setItem("medical_wheel_log", JSON.stringify(trainingLog));
+    localStorage.setItem("medical_wheel_score", String(userScore));
+    localStorage.setItem("medical_wheel_streak", String(userStreak));
+
+    updateScoreUI();
+    applyFilters();
+    renderTimeline();
+    return true;
+}
+
+async function pushState(silent) {
+    if (!syncKey) return;
+    if (!silent) setSyncState("Sparar till servern...", "working");
+
+    try {
+        const res = await fetch(`/api/state?key=${encodeURIComponent(syncKey)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(collectState())
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
+        setSyncState(`Sparad på servern ${new Date().toLocaleTimeString("sv-SE")}`, "ok");
+    } catch (err) {
+        setSyncState(`Kunde inte spara på servern (${err.message}). Data finns kvar lokalt.`, "error");
+    }
+}
+
+function queuePush() {
+    if (!syncKey) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => pushState(true), 1500);
+}
+
+async function pullState(silent) {
+    if (!syncKey) return;
+    if (!silent) setSyncState("Hämtar från servern...", "working");
+
+    try {
+        const res = await fetch(`/api/state?key=${encodeURIComponent(syncKey)}`);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
+
+        if (!json.data) {
+            setSyncState("Ingen data på servern än — dina lokala fall laddas upp.", "ok");
+            pushState(true);
+            return;
+        }
+
+        applyState(json.data);
+        setSyncState(`Hämtad från servern (${trainingLog.length} träningstillfällen).`, "ok");
+    } catch (err) {
+        setSyncState(`Kunde inte hämta från servern (${err.message}). Kör vidare lokalt.`, "error");
+    }
+}
+
+function initSync() {
+    const input = document.getElementById("syncKeyInput");
+    if (input) input.value = syncKey;
+
+    document.getElementById("btnSyncSave")?.addEventListener("click", () => {
+        const value = (input?.value || "").trim();
+        if (value && !/^[a-zA-Z0-9_-]{4,64}$/.test(value)) {
+            setSyncState("Ogiltig nyckel: 4–64 tecken, bara a-z, A-Z, 0-9, _ och -.", "error");
+            return;
+        }
+        syncKey = value;
+        localStorage.setItem("medical_wheel_synckey", syncKey);
+        if (!syncKey) {
+            setSyncState("Serversynk av — data sparas bara lokalt.", "");
+            return;
+        }
+        pullState(false);
+    });
+
+    document.getElementById("btnSyncPull")?.addEventListener("click", () => {
+        if (!syncKey) return setSyncState("Ange en synknyckel först.", "error");
+        pullState(false);
+    });
+
+    document.getElementById("btnSyncPush")?.addEventListener("click", () => {
+        if (!syncKey) return setSyncState("Ange en synknyckel först.", "error");
+        pushState(false);
+    });
+
+    if (syncKey) pullState(true);
+}
 
 /* ==========================================================================
    SPACED REPETITION (SM-2-light)
@@ -183,6 +307,7 @@ function initEventListeners() {
         trainingLog = [];
         localStorage.setItem("medical_wheel_log", "[]");
         renderTimeline();
+        queuePush();
     });
 }
 
@@ -273,6 +398,7 @@ function setCaseStatus(caseData, newStatus) {
     localStorage.setItem("medical_wheel_statuses", JSON.stringify(caseStatuses));
     applyFilters();
     renderTimeline();
+    queuePush();
 }
 
 function openMysteryModal(caseData) {
@@ -371,6 +497,7 @@ function markCaseResult(passed) {
     closeMysteryModal();
     applyFilters();
     renderTimeline();
+    queuePush();
 }
 
 /* ==========================================================================
