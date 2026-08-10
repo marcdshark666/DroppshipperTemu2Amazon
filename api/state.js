@@ -59,15 +59,21 @@ module.exports = async function handler(req, res) {
 
     try {
         if (req.method === "GET") {
-            // Privat blob: hämta URL via list() och läs innehållet server-side
-            const { blobs } = await blob.list({ prefix: pathname, limit: 1 });
-            const found = blobs.find(b => b.pathname === pathname);
-            if (!found) return res.status(200).json({ ok: true, data: null, updatedAt: null });
+            // Privat blob — läses bara server-side med butikens token, aldrig via publik URL
+            const result = await blob.get(pathname, { access: "private", useCache: false });
+            if (!result || !result.stream) {
+                return res.status(200).json({ ok: true, data: null, updatedAt: null });
+            }
 
-            const resp = await fetch(found.downloadUrl || found.url);
-            if (!resp.ok) throw new Error(`Kunde inte läsa blob: ${resp.status}`);
-            const data = await resp.json();
-            return res.status(200).json({ ok: true, data, updatedAt: found.uploadedAt || null });
+            const chunks = [];
+            for await (const chunk of result.stream) chunks.push(Buffer.from(chunk));
+            const data = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+
+            return res.status(200).json({
+                ok: true,
+                data,
+                updatedAt: data.updatedAt || null
+            });
         }
 
         if (req.method === "POST" || req.method === "PUT") {
@@ -80,7 +86,7 @@ module.exports = async function handler(req, res) {
             const body = JSON.stringify({ ...payload, updatedAt });
 
             await blob.put(pathname, body, {
-                access: "public",
+                access: "private",
                 contentType: "application/json",
                 addRandomSuffix: false,
                 allowOverwrite: true,
