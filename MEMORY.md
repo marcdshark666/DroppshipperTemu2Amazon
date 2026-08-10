@@ -6,7 +6,8 @@ lyckohjul. Fullständiga regler finns i `AGENTS.md`. Läs den innan du rör kode
 
 - **NOLLTIPS**: vänt kort = bara fallnumret. Allt annat först efter "Avslöja Diagnos".
 - **Spaced repetition**: 🔴 = repetera om 10 min, 🟢 = 1 d → 3 d → ×easiness, 🔵 = nollställ.
-- **Fallrad**: scrollbar rad med alla 53 fallnummer, färgsätt direkt med 🟢/🔴/🔵.
+- **Fallrad**: vertikal lista med alla 53 fallnummer, färgsätt direkt med 🟢/🔴/🔵.
+- **Serversynk**: /api/state med synknyckel, kräver BLOB_READ_WRITE_TOKEN i Vercel.
 - **Tidslinje**: alla träningstillfällen med tidsstämpel, grupperade per dag.
 - Dev-server: `node server.js` → port 5280.
 - Alla tre modellerna (Claude Code, Codex, Antigravity) läser dessa filer före ändring.
