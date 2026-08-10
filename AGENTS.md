@@ -24,12 +24,20 @@ Detta gäller Claude Code, Codex OCH Antigravity/Gemini. Återinför inte
 - localStorage-nycklar: `medical_wheel_statuses`, `medical_wheel_srs`,
   `medical_wheel_log`, `medical_wheel_score`, `medical_wheel_streak`.
 
-## Serversynk
-- `api/state.js` (Vercel Blob) + samma endpoint i `server.js` för lokal utveckling.
-- Nyckelstyrd: `GET/POST /api/state?key=<synknyckel>`, nyckeln sparas i localStorage.
-- Kräver miljövariabeln `BLOB_READ_WRITE_TOKEN` i Vercel. Saknas den svarar API:t 503
+## Konto & serversynk
+- Inloggning med **e-post utan lösenord**. Kontonyckeln är `u` + SHA-256(`snurrhjul:<e-post>`)
+  trunkerad till 40 tecken. E-postadressen skickas aldrig till servern.
+- `api/state.js` (Vercel Blob, store `snurrhjul-data`, **access: private**)
+  + samma endpoint i `server.js` för lokal utveckling (`sync-data/`).
+- `GET/POST /api/state?key=<kontonyckel>`. Utan giltig token svarar API:t 503
   och klienten kör vidare mot localStorage — bryt aldrig den fallbacken.
-- Klienten pushar automatiskt 1,5 s efter varje ändring, hämtar vid sidladdning.
+- Sparas **direkt vid knapptryck** (250 ms ihopslagning) + sendBeacon innan fliken stängs.
+
+## ⚠️ Vercel-koppling (rör inte)
+Detta repo deployar till projektet **medicinskt-snurrhjul** och inget annat.
+`ada-zdrowa` var tidigare kopplat till samma repo och blev överskrivet vid varje push —
+kopplingen togs bort 2026-08-10. Ada har nu egen mapp `E:\CHAT-RTX\ada-zdrowa`
+med eget git-repo. Koppla ALDRIG in fler projekt mot det här repot.
 
 ## Fallrad & tidslinje
 - **Fallraden** under hjulet: horisontellt scrollbar lista med alla fallnummer.
