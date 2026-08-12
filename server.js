@@ -21,7 +21,7 @@ const SYNC_DIR = path.join(ROOT, 'sync-data');
 const KEY_PATTERN = /^[a-zA-Z0-9_-]{4,64}$/;
 
 // Samma sammanslagning som produktionsendpointen i api/state.js
-const { mergeStates } = require('./api/merge-state.js');
+const { mergeStates } = require('./api/_merge-state.js');
 
 function handleSyncApi(req, res, query) {
     const key = new URLSearchParams(query).get('key') || '';
@@ -49,20 +49,49 @@ function handleSyncApi(req, res, query) {
     }
 
     if (req.method === 'POST' || req.method === 'PUT') {
-        let body = '';
+        // Buffertar, inte strängkonkatenering — annars går svenska tecken
+        // som delas mellan två paket sönder ("kärlkramp" -> "k??rlkramp")
+        const chunks = [];
+        let size = 0;
+        let tooLarge = false;
+
         req.on('data', chunk => {
-            body += chunk;
-            if (body.length > 512 * 1024) req.destroy();
+            if (tooLarge) return;
+            size += chunk.length;
+            if (size > 512 * 1024) {
+                tooLarge = true;
+                res.writeHead(413, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: 'Payload för stor.' }));
+                return;
+            }
+            chunks.push(chunk);
         });
+
         req.on('end', () => {
+            if (tooLarge) return;
             try {
-                const payload = JSON.parse(body);
+                const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+
                 let existing = null;
-                try { existing = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { /* nytt konto */ }
+                try {
+                    existing = JSON.parse(fs.readFileSync(file, 'utf8'));
+                } catch (e) {
+                    if (e.code !== 'ENOENT') {
+                        // Filen finns men gick inte att läsa — skriv inte över den
+                        res.writeHead(503, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ ok: false, error: `Kunde inte läsa befintligt tillstånd: ${e.message}` }));
+                    }
+                }
+
                 const merged = mergeStates(existing, payload);
                 const updatedAt = new Date().toISOString();
                 fs.mkdirSync(SYNC_DIR, { recursive: true });
-                fs.writeFileSync(file, JSON.stringify({ ...merged, updatedAt }));
+
+                // Atomisk skrivning: ett avbrott får inte lämna en halv fil
+                const tmp = `${file}.tmp`;
+                fs.writeFileSync(tmp, JSON.stringify({ ...merged, updatedAt }));
+                fs.renameSync(tmp, file);
+
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ ok: true, updatedAt }));
             } catch (e) {

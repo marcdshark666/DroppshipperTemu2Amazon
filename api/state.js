@@ -16,16 +16,48 @@ function blobPath(key) {
     return `snurrhjul/${key}.json`;
 }
 
-const { mergeStates } = require("./merge-state.js");
+const { mergeStates } = require("./_merge-state.js");
 
+/* Returnerar null BARA när kontot inte finns (nytt konto).
+   Vid läsfel kastas ett fel med readFailed=true — då får ingen skrivning ske,
+   annars skulle en enda enhets vy radera allt som redan ligger på kontot. */
 async function readExisting(blob, pathname) {
+    let result;
     try {
-        const result = await blob.get(pathname, { access: "private", useCache: false });
-        if (!result || !result.stream) return null;
+        result = await blob.get(pathname, { access: "private", useCache: false });
+    } catch (err) {
+        const wrapped = new Error(`Kunde inte läsa befintligt tillstånd: ${err.message || err}`);
+        wrapped.readFailed = true;
+        throw wrapped;
+    }
+
+    if (!result || !result.stream) return null; // nytt konto
+
+    let raw;
+    try {
         const chunks = [];
         for await (const chunk of result.stream) chunks.push(Buffer.from(chunk));
-        return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        raw = Buffer.concat(chunks).toString("utf8");
     } catch (err) {
+        const wrapped = new Error(`Avbruten läsning av befintligt tillstånd: ${err.message || err}`);
+        wrapped.readFailed = true;
+        throw wrapped;
+    }
+
+    try {
+        return {
+            data: JSON.parse(raw),
+            etag: result.blob && result.blob.etag
+        };
+    } catch (err) {
+        // Trasig fil: lägg undan den i karantän i stället för att tyst skriva över
+        try {
+            await blob.put(`${pathname}.broken-${Date.now()}`, raw, {
+                access: "private",
+                contentType: "application/json",
+                addRandomSuffix: false
+            });
+        } catch (e) { /* karantänen får misslyckas, den är en bonus */ }
         return null;
     }
 }
@@ -96,21 +128,42 @@ module.exports = async function handler(req, res) {
                 return res.status(400).json({ ok: false, error: "Body måste vara ett JSON-objekt." });
             }
 
-            const existing = await readExisting(blob, pathname);
-            const merged = mergeStates(existing, payload);
+            // Läs–slå ihop–skriv, med ett omtag om någon annan enhet hann emellan
+            for (let attempt = 0; attempt < 2; attempt++) {
+                let existing;
+                try {
+                    existing = await readExisting(blob, pathname);
+                } catch (err) {
+                    if (err.readFailed) {
+                        // Skriv ALDRIG när vi inte vet vad som redan finns
+                        return res.status(503).json({ ok: false, error: err.message });
+                    }
+                    throw err;
+                }
 
-            const updatedAt = new Date().toISOString();
-            const body = JSON.stringify({ ...merged, updatedAt });
+                const merged = mergeStates(existing && existing.data, payload);
+                const updatedAt = new Date().toISOString();
+                const body = JSON.stringify({ ...merged, updatedAt });
 
-            await blob.put(pathname, body, {
-                access: "private",
-                contentType: "application/json",
-                addRandomSuffix: false,
-                allowOverwrite: true,
-                cacheControlMaxAge: 0
-            });
+                const putOptions = {
+                    access: "private",
+                    contentType: "application/json",
+                    addRandomSuffix: false,
+                    allowOverwrite: true,
+                    cacheControlMaxAge: 0
+                };
+                if (existing && existing.etag) putOptions.ifMatch = existing.etag;
 
-            return res.status(200).json({ ok: true, updatedAt });
+                try {
+                    await blob.put(pathname, body, putOptions);
+                    return res.status(200).json({ ok: true, updatedAt });
+                } catch (err) {
+                    const raceLost = err && (err.name === "BlobPreconditionFailedError" ||
+                        /precondition/i.test(String(err.message || "")));
+                    if (!raceLost || attempt === 1) throw err;
+                    // Någon annan skrev under tiden — läs om och slå ihop mot den nya versionen
+                }
+            }
         }
 
         res.setHeader("Allow", "GET, POST");

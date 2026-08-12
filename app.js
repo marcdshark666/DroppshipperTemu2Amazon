@@ -84,16 +84,25 @@ function renderSaveBanner() {
         return;
     }
 
-    if (pendingSave) {
+    if (hasUnsaved()) {
         el.className = "save-banner pending";
         el.innerHTML = `<i class="fa-solid fa-cloud-arrow-up fa-fade"></i>
             <span>Sparar dina val till <strong>${accountEmail}</strong>...</span>`;
         return;
     }
 
+    // Grön bock kräver att servern faktiskt har svarat — inte bara att en nyckel finns
+    if (serverSeenAt === null) {
+        el.className = "save-banner pending";
+        el.innerHTML = `<i class="fa-solid fa-cloud-arrow-down fa-fade"></i>
+            <span>Kontrollerar servern för <strong>${accountEmail}</strong>...</span>`;
+        return;
+    }
+
+    const kl = new Date(serverSeenAt).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
     el.className = "save-banner ok";
     el.innerHTML = `<i class="fa-solid fa-circle-check"></i>
-        <span>Alla val sparade på servern för <strong>${accountEmail}</strong></span>`;
+        <span>Alla val sparade på servern för <strong>${accountEmail}</strong> (kvitterat ${kl})</span>`;
 }
 
 function focusLogin() {
@@ -197,6 +206,17 @@ function mergeState(remote) {
    glöms aldrig bort, utan skickas om vid nästa tillfälle. */
 let pendingSave = localStorage.getItem("medical_wheel_pending") === "1";
 let pushInFlight = false;
+let pushQueued = false;
+/* stateRev räknas upp vid varje ändring, ackedRev vid varje kvitterad skrivning.
+   Skiljer de sig finns osparat arbete — även om en skrivning nyss lyckades. */
+let stateRev = 0;
+let ackedRev = 0;
+/* Sätts bara när servern faktiskt har svarat. Persisteras aldrig. */
+let serverSeenAt = null;
+
+function hasUnsaved() {
+    return pendingSave || stateRev !== ackedRev;
+}
 
 function setPending(value) {
     pendingSave = value;
@@ -205,12 +225,17 @@ function setPending(value) {
 }
 
 async function pushState(silent) {
-    if (!syncKey || pushInFlight) return;
+    if (!syncKey) return;
+    // En skrivning pågår: köa i stället för att tyst kasta bort den nya ändringen
+    if (pushInFlight) { pushQueued = true; return; }
+
     pushInFlight = true;
+    const revAtSend = stateRev;
+    const keyAtSend = syncKey;
     if (!silent) setSyncState("Sparar till servern...", "working");
 
     try {
-        const res = await fetch(`/api/state?key=${encodeURIComponent(syncKey)}`, {
+        const res = await fetch(`/api/state?key=${encodeURIComponent(keyAtSend)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(collectState())
@@ -218,19 +243,27 @@ async function pushState(silent) {
         const json = await res.json().catch(() => ({}));
         if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
 
-        setPending(false);
+        serverSeenAt = Date.now();
+        ackedRev = revAtSend;
+        // Ändringar som gjorts EFTER avsändningen är fortfarande osparade
+        setPending(stateRev !== revAtSend);
         setSyncState(`✓ Sparat på servern ${new Date().toLocaleTimeString("sv-SE")}`, "ok");
     } catch (err) {
         setPending(true);
         setSyncState(`Inte sparat på servern än (${err.message}) — försöker igen.`, "error");
     } finally {
         pushInFlight = false;
+        if (pushQueued || stateRev !== ackedRev) {
+            pushQueued = false;
+            if (syncKey) setTimeout(() => pushState(true), 0);
+        }
     }
 }
 
 /* Sparar direkt när du trycker på en knapp — ingen fördröjning.
    Snabba klick i följd slås ihop till en skrivning via syncTimer. */
 function queuePush() {
+    stateRev++;
     setPending(true);
 
     if (!syncKey) {
@@ -240,14 +273,19 @@ function queuePush() {
 
     clearTimeout(syncTimer);
     setSyncState("Sparar...", "working");
-    syncTimer = setTimeout(() => { syncTimer = null; pushState(true); }, 250);
+    const keyAtQueue = syncKey;
+    syncTimer = setTimeout(() => {
+        syncTimer = null;
+        // Har kontot bytts under fördröjningen får skrivningen inte gå till fel konto
+        if (syncKey === keyAtQueue) pushState(true);
+    }, 250);
 }
 
 /* Skickar om det som ligger osparat: när nätet kommer tillbaka,
    när fliken blir aktiv igen och var 20:e sekund. */
 function startRetryLoop() {
     const retry = () => {
-        if (pendingSave && syncKey && navigator.onLine !== false) pushState(true);
+        if (hasUnsaved() && syncKey && navigator.onLine !== false) pushState(true);
     };
     window.addEventListener("online", retry);
     document.addEventListener("visibilitychange", () => {
@@ -265,22 +303,65 @@ async function pullState(silent) {
         const json = await res.json().catch(() => ({}));
         if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
 
+        serverSeenAt = Date.now();
+
         if (!json.data) {
+            // Tomt konto och inget lokalt att bidra med — ladda inte upp tomhet
+            if (!Object.keys(caseStatuses).length && !trainingLog.length) {
+                setPending(false);
+                ackedRev = stateRev;
+                setSyncState("Nytt konto — inget att ladda upp än.", "ok");
+                renderSaveBanner();
+                return;
+            }
             setSyncState("Nytt konto — dina fall här laddas upp till servern.", "ok");
             setPending(true);
             pushState(true);
             return;
         }
 
+        serverSeenAt = Date.now();
         mergeState(json.data);
         const antalFall = Object.keys(caseStatuses).length;
         setSyncState(`✓ Inloggad. ${antalFall} färgsatta fall, ${trainingLog.length} träningstillfällen.`, "ok");
+        renderSaveBanner();
 
         // Sammanslagningen kan ha gett servern nytt att spara
-        if (pendingSave) pushState(true);
+        if (hasUnsaved()) pushState(true);
     } catch (err) {
         setSyncState(`Kunde inte hämta från servern (${err.message}). Kör vidare lokalt.`, "error");
+        const el = document.getElementById("saveBanner");
+        if (el && syncKey) {
+            el.className = "save-banner warn";
+            el.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Ingen kontakt med servern — dina val ligger bara i den här webbläsaren just nu.</span>`;
+        }
     }
+}
+
+const LOCAL_KEYS = [
+    "medical_wheel_statuses", "medical_wheel_status_at", "medical_wheel_srs",
+    "medical_wheel_log", "medical_wheel_score", "medical_wheel_streak", "medical_wheel_pending"
+];
+
+/* Tömmer all studiedata ur både minnet och webbläsaren.
+   Utan detta ärver nästa konto föregående användares färger. */
+function resetStudyState() {
+    caseStatuses = {};
+    statusUpdatedAt = {};
+    srsData = {};
+    trainingLog = [];
+    userScore = 0;
+    userStreak = 0;
+    pendingSave = false;
+    stateRev = 0;
+    ackedRev = 0;
+    LOCAL_KEYS.forEach(k => localStorage.removeItem(k));
+
+    updateScoreUI();
+    applyFilters();
+    renderTimeline();
+    renderSaveBanner();
 }
 
 async function loginWithEmail(email) {
@@ -290,24 +371,57 @@ async function loginWithEmail(email) {
     }
 
     setSyncState("Loggar in...", "working");
-    accountEmail = String(email).trim().toLowerCase();
-    syncKey = await keyFromEmail(accountEmail);
+    const normalized = String(email).trim().toLowerCase();
+    const newKey = await keyFromEmail(normalized);
+    const lastKey = localStorage.getItem("medical_wheel_lastkey") || "";
+    const antalLokala = Object.keys(caseStatuses).length;
+
+    if (lastKey && lastKey !== newKey) {
+        // Byte till ett annat konto — ärv aldrig föregående användares data
+        resetStudyState();
+    } else if (!lastKey && (antalLokala || trainingLog.length)) {
+        const svar = confirm(
+            `Du har ${antalLokala} färgsatta fall i den här webbläsaren.\n\n` +
+            `Vill du ta med dem till kontot ${normalized}?`
+        );
+        if (!svar) resetStudyState();
+    }
+
+    accountEmail = normalized;
+    syncKey = newKey;
+    serverSeenAt = null;
     localStorage.setItem("medical_wheel_email", accountEmail);
     localStorage.setItem("medical_wheel_synckey", syncKey);
+    localStorage.setItem("medical_wheel_lastkey", syncKey);
 
     renderAccountUI();
     renderSaveBanner();
     await pullState(false);
 }
 
-function logout() {
+async function logout() {
+    // Stoppa den köade skrivningen så den inte fyras av mot fel konto
+    clearTimeout(syncTimer);
+    syncTimer = null;
+
+    // Spara det som ligger osparat innan kontot lämnas
+    if (hasUnsaved() && syncKey) await pushState(false);
+
     accountEmail = "";
     syncKey = "";
+    serverSeenAt = null;
     localStorage.removeItem("medical_wheel_email");
     localStorage.removeItem("medical_wheel_synckey");
+    localStorage.removeItem("medical_wheel_lastkey");
+
+    resetStudyState();
+
+    const input = document.getElementById("accountEmail");
+    if (input) { input.value = ""; input.blur(); }
+
     renderAccountUI();
     renderSaveBanner();
-    setSyncState("Utloggad — data sparas bara i den här webbläsaren.", "");
+    setSyncState("Utloggad — ingen studiedata ligger kvar i den här webbläsaren.", "");
 }
 
 function initSync() {
@@ -336,7 +450,7 @@ function initSync() {
 
     // Sista utvägen: skicka allt osparat innan fliken stängs
     window.addEventListener("beforeunload", () => {
-        if (!syncKey || !pendingSave) return;
+        if (!syncKey || !hasUnsaved()) return;
         clearTimeout(syncTimer);
         syncTimer = null;
         navigator.sendBeacon?.(
