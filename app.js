@@ -9,6 +9,8 @@ let userScore = parseInt(localStorage.getItem("medical_wheel_score") || "0");
 let userStreak = parseInt(localStorage.getItem("medical_wheel_streak") || "0");
 let srsData = JSON.parse(localStorage.getItem("medical_wheel_srs") || "{}");
 let trainingLog = JSON.parse(localStorage.getItem("medical_wheel_log") || "[]");
+// Tidsstämpel per fall — avgör vilken sida som vinner när server och webbläsare skiljer sig
+let statusUpdatedAt = JSON.parse(localStorage.getItem("medical_wheel_status_at") || "{}");
 let currentSelectedCase = null;
 let selectedCategories = new Set();
 let activeStatusFilter = "all";
@@ -67,9 +69,46 @@ function setSyncState(text, kind) {
     el.className = `sync-state ${kind || ""}`;
 }
 
+/* Bannern högst upp i hjulpanelen talar alltid om var dina val hamnar.
+   Den går inte att missa — det var precis felet förut. */
+function renderSaveBanner() {
+    const el = document.getElementById("saveBanner");
+    if (!el) return;
+
+    if (!syncKey) {
+        el.className = "save-banner warn";
+        el.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Du är <strong>inte inloggad</strong> — dina 🟢/🔴/🔵 sparas bara i den här webbläsaren.</span>
+            <button class="banner-btn" id="bannerLogin">Logga in med e-post</button>`;
+        el.querySelector("#bannerLogin")?.addEventListener("click", focusLogin);
+        return;
+    }
+
+    if (pendingSave) {
+        el.className = "save-banner pending";
+        el.innerHTML = `<i class="fa-solid fa-cloud-arrow-up fa-fade"></i>
+            <span>Sparar dina val till <strong>${accountEmail}</strong>...</span>`;
+        return;
+    }
+
+    el.className = "save-banner ok";
+    el.innerHTML = `<i class="fa-solid fa-circle-check"></i>
+        <span>Alla val sparade på servern för <strong>${accountEmail}</strong></span>`;
+}
+
+function focusLogin() {
+    const input = document.getElementById("accountEmail");
+    if (!input) return;
+    input.scrollIntoView({ behavior: "smooth", block: "center" });
+    input.focus();
+    input.classList.add("highlight");
+    setTimeout(() => input.classList.remove("highlight"), 2000);
+}
+
 function collectState() {
     return {
         statuses: caseStatuses,
+        statusUpdatedAt: statusUpdatedAt,
         srs: srsData,
         log: trainingLog,
         score: userScore,
@@ -77,29 +116,97 @@ function collectState() {
     };
 }
 
-function applyState(state) {
-    if (!state || typeof state !== "object") return false;
-
-    caseStatuses = state.statuses || {};
-    srsData = state.srs || {};
-    trainingLog = Array.isArray(state.log) ? state.log : [];
-    userScore = parseInt(state.score || 0, 10);
-    userStreak = parseInt(state.streak || 0, 10);
-
+function saveLocal() {
     localStorage.setItem("medical_wheel_statuses", JSON.stringify(caseStatuses));
+    localStorage.setItem("medical_wheel_status_at", JSON.stringify(statusUpdatedAt));
     localStorage.setItem("medical_wheel_srs", JSON.stringify(srsData));
     localStorage.setItem("medical_wheel_log", JSON.stringify(trainingLog));
     localStorage.setItem("medical_wheel_score", String(userScore));
     localStorage.setItem("medical_wheel_streak", String(userStreak));
+}
 
+function stamp(id) {
+    statusUpdatedAt[id] = new Date().toISOString();
+}
+
+function timeOf(map, id) {
+    const v = map && map[id];
+    return v ? new Date(v).getTime() : 0;
+}
+
+/* Slår ihop serverns tillstånd med det som redan finns i webbläsaren.
+   Per fall vinner den senaste ändringen — ett val du nyss gjort skrivs
+   ALDRIG över av en äldre serverkopia. */
+function mergeState(remote) {
+    if (!remote || typeof remote !== "object") return false;
+
+    const remoteStatuses = remote.statuses || {};
+    const remoteAt = remote.statusUpdatedAt || {};
+    const remoteSrs = remote.srs || {};
+
+    const ids = new Set([...Object.keys(caseStatuses), ...Object.keys(remoteStatuses), ...Object.keys(remoteAt)]);
+
+    ids.forEach(id => {
+        const localTime = timeOf(statusUpdatedAt, id);
+        const remoteTime = timeOf(remoteAt, id);
+
+        // Okänd ålder på båda sidor: låt servern fylla i det som saknas lokalt
+        const remoteWins = remoteTime > localTime || (remoteTime === 0 && localTime === 0 && !(id in caseStatuses));
+
+        if (!remoteWins) return;
+
+        if (remoteStatuses[id]) {
+            caseStatuses[id] = remoteStatuses[id];
+        } else {
+            delete caseStatuses[id];
+        }
+        if (remoteSrs[id]) srsData[id] = remoteSrs[id];
+        else delete srsData[id];
+
+        if (remoteAt[id]) statusUpdatedAt[id] = remoteAt[id];
+    });
+
+    // Tidslinjen slås ihop och dedupliceras på fall + tidpunkt
+    const seen = new Set();
+    const merged = [...(Array.isArray(remote.log) ? remote.log : []), ...trainingLog]
+        .filter(e => {
+            if (!e || !e.at) return false;
+            const k = `${e.id}|${e.at}`;
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+        })
+        .sort((a, b) => new Date(b.at) - new Date(a.at))
+        .slice(0, 300);
+    trainingLog = merged;
+
+    // Poäng kan bara växa — ta aldrig bort intjänade poäng vid en sammanslagning
+    userScore = Math.max(userScore, parseInt(remote.score || 0, 10) || 0);
+    userStreak = trainingLog.length && trainingLog[0].passed
+        ? Math.max(userStreak, parseInt(remote.streak || 0, 10) || 0)
+        : userStreak;
+
+    saveLocal();
     updateScoreUI();
     applyFilters();
     renderTimeline();
     return true;
 }
 
+/* pendingSave överlever en omladdning: en ändring som inte nått servern
+   glöms aldrig bort, utan skickas om vid nästa tillfälle. */
+let pendingSave = localStorage.getItem("medical_wheel_pending") === "1";
+let pushInFlight = false;
+
+function setPending(value) {
+    pendingSave = value;
+    localStorage.setItem("medical_wheel_pending", value ? "1" : "0");
+    renderSaveBanner();
+}
+
 async function pushState(silent) {
-    if (!syncKey) return;
+    if (!syncKey || pushInFlight) return;
+    pushInFlight = true;
     if (!silent) setSyncState("Sparar till servern...", "working");
 
     try {
@@ -110,22 +217,43 @@ async function pushState(silent) {
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
+
+        setPending(false);
         setSyncState(`✓ Sparat på servern ${new Date().toLocaleTimeString("sv-SE")}`, "ok");
     } catch (err) {
-        setSyncState(`Kunde inte spara på servern (${err.message}). Allt finns kvar lokalt.`, "error");
+        setPending(true);
+        setSyncState(`Inte sparat på servern än (${err.message}) — försöker igen.`, "error");
+    } finally {
+        pushInFlight = false;
     }
 }
 
 /* Sparar direkt när du trycker på en knapp — ingen fördröjning.
    Snabba klick i följd slås ihop till en skrivning via syncTimer. */
 function queuePush() {
+    setPending(true);
+
     if (!syncKey) {
-        setSyncState("Sparat lokalt. Logga in för att spara på servern.", "");
+        setSyncState("Sparat i den här webbläsaren. Logga in för att spara på servern.", "error");
         return;
     }
+
     clearTimeout(syncTimer);
     setSyncState("Sparar...", "working");
     syncTimer = setTimeout(() => { syncTimer = null; pushState(true); }, 250);
+}
+
+/* Skickar om det som ligger osparat: när nätet kommer tillbaka,
+   när fliken blir aktiv igen och var 20:e sekund. */
+function startRetryLoop() {
+    const retry = () => {
+        if (pendingSave && syncKey && navigator.onLine !== false) pushState(true);
+    };
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") retry();
+    });
+    setInterval(retry, 20000);
 }
 
 async function pullState(silent) {
@@ -139,13 +267,17 @@ async function pullState(silent) {
 
         if (!json.data) {
             setSyncState("Nytt konto — dina fall här laddas upp till servern.", "ok");
+            setPending(true);
             pushState(true);
             return;
         }
 
-        applyState(json.data);
+        mergeState(json.data);
         const antalFall = Object.keys(caseStatuses).length;
-        setSyncState(`✓ Inloggad. ${antalFall} färgsatta fall och ${trainingLog.length} träningstillfällen hämtade.`, "ok");
+        setSyncState(`✓ Inloggad. ${antalFall} färgsatta fall, ${trainingLog.length} träningstillfällen.`, "ok");
+
+        // Sammanslagningen kan ha gett servern nytt att spara
+        if (pendingSave) pushState(true);
     } catch (err) {
         setSyncState(`Kunde inte hämta från servern (${err.message}). Kör vidare lokalt.`, "error");
     }
@@ -164,6 +296,7 @@ async function loginWithEmail(email) {
     localStorage.setItem("medical_wheel_synckey", syncKey);
 
     renderAccountUI();
+    renderSaveBanner();
     await pullState(false);
 }
 
@@ -173,6 +306,7 @@ function logout() {
     localStorage.removeItem("medical_wheel_email");
     localStorage.removeItem("medical_wheel_synckey");
     renderAccountUI();
+    renderSaveBanner();
     setSyncState("Utloggad — data sparas bara i den här webbläsaren.", "");
 }
 
@@ -192,15 +326,19 @@ function initSync() {
     });
 
     renderAccountUI();
+    renderSaveBanner();
 
     if (syncKey) {
         pullState(true);
     }
 
-    // Sista utvägen: skicka osparade ändringar innan fliken stängs
+    startRetryLoop();
+
+    // Sista utvägen: skicka allt osparat innan fliken stängs
     window.addEventListener("beforeunload", () => {
-        if (!syncKey || !syncTimer) return;
+        if (!syncKey || !pendingSave) return;
         clearTimeout(syncTimer);
+        syncTimer = null;
         navigator.sendBeacon?.(
             `/api/state?key=${encodeURIComponent(syncKey)}`,
             new Blob([JSON.stringify(collectState())], { type: "application/json" })
@@ -451,14 +589,15 @@ function setCaseStatus(caseData, newStatus) {
     if (newStatus === "untested") {
         delete caseStatuses[caseData.id];
         delete srsData[caseData.id];
-        localStorage.setItem("medical_wheel_srs", JSON.stringify(srsData));
     } else {
         caseStatuses[caseData.id] = newStatus;
         const s = scheduleCase(caseData.id, newStatus === "green");
         logTraining(caseData, newStatus === "green", s);
     }
 
-    localStorage.setItem("medical_wheel_statuses", JSON.stringify(caseStatuses));
+    // Blått räknas som ett val precis som rött och grönt — det stämplas och sparas
+    stamp(caseData.id);
+    saveLocal();
     applyFilters();
     renderTimeline();
     queuePush();
@@ -551,9 +690,8 @@ function markCaseResult(passed) {
 
     const srs = scheduleCase(currentSelectedCase.id, passed);
 
-    localStorage.setItem("medical_wheel_statuses", JSON.stringify(caseStatuses));
-    localStorage.setItem("medical_wheel_score", userScore.toString());
-    localStorage.setItem("medical_wheel_streak", userStreak.toString());
+    stamp(currentSelectedCase.id);
+    saveLocal();
 
     updateScoreUI();
     logTraining(currentSelectedCase, passed, srs);

@@ -16,6 +16,20 @@ function blobPath(key) {
     return `snurrhjul/${key}.json`;
 }
 
+const { mergeStates } = require("./merge-state.js");
+
+async function readExisting(blob, pathname) {
+    try {
+        const result = await blob.get(pathname, { access: "private", useCache: false });
+        if (!result || !result.stream) return null;
+        const chunks = [];
+        for await (const chunk of result.stream) chunks.push(Buffer.from(chunk));
+        return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch (err) {
+        return null;
+    }
+}
+
 async function readBody(req) {
     if (req.body && typeof req.body === "object") return req.body;
 
@@ -82,8 +96,11 @@ module.exports = async function handler(req, res) {
                 return res.status(400).json({ ok: false, error: "Body måste vara ett JSON-objekt." });
             }
 
+            const existing = await readExisting(blob, pathname);
+            const merged = mergeStates(existing, payload);
+
             const updatedAt = new Date().toISOString();
-            const body = JSON.stringify({ ...payload, updatedAt });
+            const body = JSON.stringify({ ...merged, updatedAt });
 
             await blob.put(pathname, body, {
                 access: "private",

@@ -20,6 +20,9 @@ const MIME_TYPES = {
 const SYNC_DIR = path.join(ROOT, 'sync-data');
 const KEY_PATTERN = /^[a-zA-Z0-9_-]{4,64}$/;
 
+// Samma sammanslagning som produktionsendpointen i api/state.js
+const { mergeStates } = require('./api/merge-state.js');
+
 function handleSyncApi(req, res, query) {
     const key = new URLSearchParams(query).get('key') || '';
     res.setHeader('Cache-Control', 'no-store');
@@ -54,9 +57,12 @@ function handleSyncApi(req, res, query) {
         req.on('end', () => {
             try {
                 const payload = JSON.parse(body);
+                let existing = null;
+                try { existing = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { /* nytt konto */ }
+                const merged = mergeStates(existing, payload);
                 const updatedAt = new Date().toISOString();
                 fs.mkdirSync(SYNC_DIR, { recursive: true });
-                fs.writeFileSync(file, JSON.stringify({ ...payload, updatedAt }));
+                fs.writeFileSync(file, JSON.stringify({ ...merged, updatedAt }));
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ ok: true, updatedAt }));
             } catch (e) {

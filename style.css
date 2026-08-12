@@ -654,3 +654,58 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
     border-radius: 8px;
 }
 #accountEmail:focus { outline: 2px solid #6366f1; outline-offset: 1px; }
+
+/* ==========================================================================
+   SPARBANNER — visar alltid var valen hamnar
+   ========================================================================== */
+.save-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 1rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+    border-radius: 12px;
+    border: 1px solid transparent;
+}
+.save-banner:empty { display: none; }
+.save-banner.warn {
+    color: #fde68a;
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.5);
+}
+.save-banner.pending {
+    color: #fef3c7;
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.5);
+}
+.save-banner.ok {
+    color: #6ee7b7;
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.4);
+}
+.save-banner span { flex: 1 1 auto; }
+.banner-btn {
+    flex: 0 0 auto;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #fff;
+    background: #6366f1;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.banner-btn:hover { filter: brightness(1.15); }
+#accountEmail.highlight {
+    outline: 3px solid #f59e0b;
+    outline-offset: 2px;
+    transition: outline .2s;
+}
+@media (max-width: 640px) {
+    .save-banner { flex-wrap: wrap; }
+}
