@@ -33,6 +33,18 @@ Detta gäller Claude Code, Codex OCH Antigravity/Gemini. Återinför inte
   och klienten kör vidare mot localStorage — bryt aldrig den fallbacken.
 - Sparas **direkt vid knapptryck** (250 ms ihopslagning) + sendBeacon innan fliken stängs.
 
+### Regler som INTE får brytas i synken
+1. `readExisting` får returnera `null` **bara** när kontot inte finns. Vid läsfel: kasta
+   med `readFailed=true` → 503. Skriv aldrig när du inte vet vad som redan ligger där —
+   `mergeStates(null, x)` returnerar `x` och raderar alltså hela kontot.
+2. `pushState` får aldrig returnera tyst vid pågående skrivning — köa med `pushQueued`.
+   `stateRev`/`ackedRev` avgör vad som är kvitterat, inte `pendingSave` ensamt.
+3. Grön "sparat"-banner kräver `serverSeenAt !== null`, dvs. ett faktiskt serversvar.
+4. `logout()` måste flusha osparat och sedan köra `resetStudyState()` — annars ärver
+   nästa konto föregående användares färger och laddar upp dem som sina egna.
+5. Filer under `api/` som inte är endpoints ska ha `_`-prefix, annars bygger Vercel dem
+   till egna trasiga funktioner.
+
 ## ⚠️ Vercel-koppling (rör inte)
 Detta repo deployar till projektet **medicinskt-snurrhjul** och inget annat.
 `ada-zdrowa` var tidigare kopplat till samma repo och blev överskrivet vid varje push —
