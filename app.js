@@ -207,6 +207,7 @@ function mergeState(remote) {
 let pendingSave = localStorage.getItem("medical_wheel_pending") === "1";
 let pushInFlight = false;
 let pushQueued = false;
+let pushFailures = 0;
 /* stateRev räknas upp vid varje ändring, ackedRev vid varje kvitterad skrivning.
    Skiljer de sig finns osparat arbete — även om en skrivning nyss lyckades. */
 let stateRev = 0;
@@ -241,16 +242,32 @@ async function pushState(silent) {
             body: JSON.stringify(collectState())
         });
         const json = await res.json().catch(() => ({}));
-        if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
+        if (!res.ok || !json.ok) {
+            const fel = new Error(json.error || `HTTP ${res.status}`);
+            // Servern säger själv om det är värt att försöka igen (t.ex. krock mellan flikar)
+            fel.retryable = json.retryable === true || res.status === 409 || res.status === 503;
+            throw fel;
+        }
 
         serverSeenAt = Date.now();
         ackedRev = revAtSend;
+        pushFailures = 0;
         // Ändringar som gjorts EFTER avsändningen är fortfarande osparade
         setPending(stateRev !== revAtSend);
         setSyncState(`✓ Sparat på servern ${new Date().toLocaleTimeString("sv-SE")}`, "ok");
     } catch (err) {
+        pushFailures++;
         setPending(true);
-        setSyncState(`Inte sparat på servern än (${err.message}) — försöker igen.`, "error");
+
+        // Övergående krock: säg inte att det gick fel, det löser sig av sig självt
+        const overgaende = (err.retryable || /precondition|etag/i.test(err.message)) && pushFailures < 4;
+        if (overgaende) {
+            setSyncState("Sparar... (en annan flik skrev samtidigt, försöker igen)", "working");
+            setTimeout(() => { if (hasUnsaved() && syncKey) pushState(true); },
+                300 + Math.floor(Math.random() * 400));
+        } else {
+            setSyncState(`Inte sparat på servern än (${err.message}) — försöker igen.`, "error");
+        }
     } finally {
         pushInFlight = false;
         if (pushQueued || stateRev !== ackedRev) {
@@ -291,7 +308,8 @@ function startRetryLoop() {
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") retry();
     });
-    setInterval(retry, 20000);
+    // Slumpad takt så två öppna flikar inte skriver i samma ögonblick varje gång
+    setInterval(retry, 20000 + Math.floor(Math.random() * 8000));
 }
 
 async function pullState(silent) {

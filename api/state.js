@@ -11,6 +11,15 @@
 
 const KEY_PATTERN = /^[a-zA-Z0-9_-]{4,64}$/;
 const MAX_BODY_BYTES = 512 * 1024;
+const MAX_WRITE_ATTEMPTS = 4;
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function isPreconditionFailure(err) {
+    if (!err) return false;
+    return err.name === "BlobPreconditionFailedError" ||
+        /precondition|etag/i.test(String(err.message || ""));
+}
 
 function blobPath(key) {
     return `snurrhjul/${key}.json`;
@@ -128,15 +137,21 @@ module.exports = async function handler(req, res) {
                 return res.status(400).json({ ok: false, error: "Body måste vara ett JSON-objekt." });
             }
 
-            // Läs–slå ihop–skriv, med ett omtag om någon annan enhet hann emellan
-            for (let attempt = 0; attempt < 2; attempt++) {
+            /* Läs–slå ihop–skriv med optimistisk låsning.
+               Skrev någon annan enhet emellan läser vi om och slår ihop mot den
+               nya versionen. Sista försöket görs UTAN precondition: sammanslagningen
+               skyddar ändå innehållet, och att aldrig kunna spara är värre än ett
+               mycket smalt konfliktfönster. */
+            for (let attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
+                const sistaForsoket = attempt === MAX_WRITE_ATTEMPTS - 1;
+
                 let existing;
                 try {
                     existing = await readExisting(blob, pathname);
                 } catch (err) {
                     if (err.readFailed) {
                         // Skriv ALDRIG när vi inte vet vad som redan finns
-                        return res.status(503).json({ ok: false, error: err.message });
+                        return res.status(503).json({ ok: false, error: err.message, retryable: true });
                     }
                     throw err;
                 }
@@ -152,16 +167,17 @@ module.exports = async function handler(req, res) {
                     allowOverwrite: true,
                     cacheControlMaxAge: 0
                 };
-                if (existing && existing.etag) putOptions.ifMatch = existing.etag;
+                if (existing && existing.etag && !sistaForsoket) {
+                    putOptions.ifMatch = existing.etag;
+                }
 
                 try {
                     await blob.put(pathname, body, putOptions);
-                    return res.status(200).json({ ok: true, updatedAt });
+                    return res.status(200).json({ ok: true, updatedAt, attempts: attempt + 1 });
                 } catch (err) {
-                    const raceLost = err && (err.name === "BlobPreconditionFailedError" ||
-                        /precondition/i.test(String(err.message || "")));
-                    if (!raceLost || attempt === 1) throw err;
-                    // Någon annan skrev under tiden — läs om och slå ihop mot den nya versionen
+                    if (!isPreconditionFailure(err) || sistaForsoket) throw err;
+                    // Backa av med slumpad väntan så samtidiga skrivare inte kolliderar igen
+                    await sleep(60 * Math.pow(2, attempt) + Math.floor(Math.random() * 120));
                 }
             }
         }
