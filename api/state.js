@@ -11,14 +11,19 @@
 
 const KEY_PATTERN = /^[a-zA-Z0-9_-]{4,64}$/;
 const MAX_BODY_BYTES = 512 * 1024;
-const MAX_WRITE_ATTEMPTS = 4;
+const MAX_WRITE_ATTEMPTS = 5;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+/* Två skilda krockar kan uppstå när flera flikar eller enheter skriver samtidigt:
+   - ETag mismatch: någon hann skriva mellan vår läsning och vår skrivning
+   - "conflicting operation": en annan skrivning pågår just nu mot samma nyckel
+   Båda är övergående och ska leda till omtag, aldrig till ett fel för användaren. */
 function isPreconditionFailure(err) {
     if (!err) return false;
     return err.name === "BlobPreconditionFailedError" ||
-        /precondition|etag/i.test(String(err.message || ""));
+        err.name === "BlobConflictError" ||
+        /precondition|etag|conflict/i.test(String(err.message || ""));
 }
 
 function blobPath(key) {
@@ -185,6 +190,15 @@ module.exports = async function handler(req, res) {
         res.setHeader("Allow", "GET, POST");
         return res.status(405).json({ ok: false, error: "Metoden stöds inte." });
     } catch (err) {
+        // Krock mellan samtidiga skrivare: be klienten vänta och skicka om,
+        // i stället för att presentera det som ett fel
+        if (isPreconditionFailure(err)) {
+            return res.status(409).json({
+                ok: false,
+                retryable: true,
+                error: "En annan flik eller enhet skrev samtidigt — försök igen."
+            });
+        }
         return res.status(500).json({ ok: false, error: String(err.message || err) });
     }
 };
