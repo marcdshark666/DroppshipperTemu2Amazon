@@ -616,6 +616,21 @@ function initEventListeners() {
     // Spin button
     document.getElementById("btnSpin")?.addEventListener("click", () => {
         if (!wheel || wheel.isSpinning) return;
+
+        // Tomt hjul: säg varför i stället för att inte göra någonting alls
+        if (!wheel.items.length) {
+            const badge = document.querySelector(".active-count-badge");
+            if (badge) {
+                badge.classList.add("badge-warn");
+                badge.innerHTML = "Inga fall matchar filtret — välj fler kategorier eller ett annat statusfilter";
+                setTimeout(() => {
+                    badge.classList.remove("badge-warn");
+                    badge.innerHTML = `<span id="activeCasesCount">0</span> fall laddade på hjulet`;
+                    applyFilters();
+                }, 3500);
+            }
+            return;
+        }
         wheel.spin((winningCase) => {
             openMysteryModal(winningCase);
         });

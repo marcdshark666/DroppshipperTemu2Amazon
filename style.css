@@ -709,3 +709,10 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
 @media (max-width: 640px) {
     .save-banner { flex-wrap: wrap; }
 }
+
+/* Tomt hjul: förklara varför inget händer */
+.active-count-badge.badge-warn {
+    color: #fde68a;
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.6);
+}
