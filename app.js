@@ -479,28 +479,68 @@ function initSync() {
 }
 
 /* ==========================================================================
+   FYRA SVÅRIGHETSGRADER
+   🟢 grön   — klarade det, satt direkt
+   🟡 gul    — lite svårt, men jag klarade det
+   🟠 orange — riktigt svårt, på gränsen; måste repeteras snart
+   🔴 röd    — klarade det inte alls
+   🔵 blå    — nollställ till ej testad
+   ========================================================================== */
+const STATUS_META = {
+    green:  { emoji: "🟢", label: "Klarade lätt",        kort: "Klarad",        farg: "#10b981", poang: 10 },
+    yellow: { emoji: "🟡", label: "Lite svårt",          kort: "Lite svårt",    farg: "#eab308", poang: 7 },
+    orange: { emoji: "🟠", label: "På gränsen",          kort: "På gränsen",    farg: "#f97316", poang: 3 },
+    red:    { emoji: "🔴", label: "Klarade inte",        kort: "Ej klarad",     farg: "#f43f5e", poang: 0 }
+};
+const STATUS_ORDER = ["green", "yellow", "orange", "red"];
+
+function statusMeta(status) {
+    return STATUS_META[status] || { emoji: "🔵", label: "Ej testad", kort: "Ej testad", farg: "#3b82f6", poang: 0 };
+}
+
+/* ==========================================================================
    SPACED REPETITION (SM-2-light)
-   Rött = lapse → tillbaka i kön om 10 minuter (repeteras samma pass).
-   Grönt = intervallet växer: 1 dygn → 3 dygn → intervall × easiness.
+   Ju svårare det kändes, desto snabbare kommer fallet tillbaka.
    ========================================================================== */
 const LAPSE_MINUTES = 10;
+const BORDERLINE_HOURS = 8;
 
 function getSrs(id) {
     return srsData[id] || { reps: 0, intervalDays: 0, easiness: 2.5, lapses: 0, due: null, last: null };
 }
 
-function scheduleCase(id, passed) {
+function scheduleCase(id, status) {
+    // Bakåtkompatibelt: äldre anrop skickade true/false
+    if (status === true) status = "green";
+    if (status === false) status = "red";
+
     const s = getSrs(id);
     const now = Date.now();
     let dueMs;
 
-    if (passed) {
+    if (status === "green") {
         s.reps += 1;
         s.easiness = Math.min(2.8, s.easiness + 0.1);
         if (s.reps === 1) s.intervalDays = 1;
         else if (s.reps === 2) s.intervalDays = 3;
         else s.intervalDays = Math.round(s.intervalDays * s.easiness);
         dueMs = now + s.intervalDays * 24 * 60 * 60 * 1000;
+
+    } else if (status === "yellow") {
+        // Klarat, men satt inte direkt — kortare steg än grönt
+        s.reps += 1;
+        s.easiness = Math.max(1.3, s.easiness - 0.05);
+        if (s.reps === 1) s.intervalDays = 1;
+        else s.intervalDays = Math.max(1, Math.round(s.intervalDays * 1.6));
+        dueMs = now + s.intervalDays * 24 * 60 * 60 * 1000;
+
+    } else if (status === "orange") {
+        // På gränsen — tillbaka samma dag, men inte lika snabbt som ett rent fel
+        s.reps = Math.max(0, s.reps);
+        s.easiness = Math.max(1.3, s.easiness - 0.15);
+        s.intervalDays = 0;
+        dueMs = now + BORDERLINE_HOURS * 60 * 60 * 1000;
+
     } else {
         s.reps = 0;
         s.lapses += 1;
@@ -509,6 +549,7 @@ function scheduleCase(id, passed) {
         dueMs = now + LAPSE_MINUTES * 60 * 1000;
     }
 
+    s.status = status;
     s.last = new Date(now).toISOString();
     s.due = new Date(dueMs).toISOString();
     srsData[id] = s;
@@ -641,9 +682,23 @@ function initEventListeners() {
         revealDiagnosis();
     });
 
-    // Pass / Fail buttons
-    document.getElementById("btnMarkPass")?.addEventListener("click", () => markCaseResult(true));
-    document.getElementById("btnMarkFail")?.addEventListener("click", () => markCaseResult(false));
+    // Svårighetsknapparna i modalen
+    document.querySelectorAll("#evalRow .btn-eval").forEach(btn => {
+        btn.addEventListener("click", () => markCaseResult(btn.getAttribute("data-status")));
+    });
+
+    // Sök på fallnummer i fallraden
+    const search = document.getElementById("caseSearch");
+    search?.addEventListener("input", () => {
+        caseSearch = search.value.replace(/\D/g, "");
+        if (search.value !== caseSearch) search.value = caseSearch;
+        renderCaseStrip();
+    });
+    document.getElementById("btnClearSearch")?.addEventListener("click", () => {
+        caseSearch = "";
+        if (search) { search.value = ""; search.focus(); }
+        renderCaseStrip();
+    });
 
     // Close Modal buttons
     document.getElementById("btnCloseMystery")?.addEventListener("click", closeMysteryModal);
@@ -671,57 +726,90 @@ function applyFilters() {
         if (redCOnly && !item.hasRedC) return false;
 
         // Status check
-        const status = caseStatuses[item.id] || "untested"; // green, red, untested
-        if (activeStatusFilter === "green" && status !== "green") return false;
-        if (activeStatusFilter === "red" && status !== "red") return false;
+        const status = caseStatuses[item.id] || "untested";
+        if (STATUS_META[activeStatusFilter] && status !== activeStatusFilter) return false;
         if (activeStatusFilter === "untested" && status !== "untested") return false;
         if (activeStatusFilter === "due" && !isDue(item.id)) return false;
 
         return true;
     });
 
-    // Update Counts
-    let greenCount = 0, redCount = 0, untestedCount = 0;
+    // Räkna om varje svårighetsgrad
+    const counts = { green: 0, yellow: 0, orange: 0, red: 0, untested: 0 };
     allMedicalCases.forEach(c => {
         const st = caseStatuses[c.id] || "untested";
-        if (st === "green") greenCount++;
-        else if (st === "red") redCount++;
-        else untestedCount++;
+        if (counts[st] === undefined) counts.untested++;
+        else counts[st]++;
     });
 
-    document.getElementById("countAll").innerText = allMedicalCases.length;
-    document.getElementById("countGreen").innerText = greenCount;
-    document.getElementById("countRed").innerText = redCount;
-    document.getElementById("countUntested").innerText = untestedCount;
-    document.getElementById("countDue").innerText = allMedicalCases.filter(c => isDue(c.id)).length;
-    document.getElementById("activeCasesCount").innerText = filtered.length;
+    const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = value;
+    };
+
+    set("countAll", allMedicalCases.length);
+    set("countGreen", counts.green);
+    set("countYellow", counts.yellow);
+    set("countOrange", counts.orange);
+    set("countRed", counts.red);
+    set("countUntested", counts.untested);
+    set("countDue", allMedicalCases.filter(c => isDue(c.id)).length);
+    set("activeCasesCount", filtered.length);
 
     if (wheel) {
         wheel.setItems(filtered);
     }
 
     renderCaseStrip();
+    renderStats(counts);
 }
 
 /* ==========================================================================
-   FALLRAD — scrolla igenom alla fall och sätt 🟢 / 🔴 / 🔵 direkt
+   FALLRAD — scrolla igenom alla fall, sök på nummer och färgsätt direkt
+   Söket matchar BARA siffror; titlar skulle avslöja diagnosen.
    ========================================================================== */
+let caseSearch = "";
+
 function renderCaseStrip() {
     const strip = document.getElementById("caseStrip");
     if (!strip) return;
 
+    const query = caseSearch.trim();
+    const synliga = allMedicalCases.filter(c => {
+        if (!query) return true;
+        return String(c.number || c.rowIndex).includes(query);
+    });
+
+    const treffar = document.getElementById("caseSearchCount");
+    if (treffar) {
+        treffar.innerText = query
+            ? `${synliga.length} av ${allMedicalCases.length}`
+            : `${allMedicalCases.length} fall`;
+    }
+
     strip.innerHTML = "";
-    allMedicalCases.forEach(c => {
+
+    if (!synliga.length) {
+        strip.innerHTML = `<div class="strip-empty">Inget fall med siffran "${query}"</div>`;
+        return;
+    }
+
+    synliga.forEach(c => {
         const status = caseStatuses[c.id] || "untested";
         const num = c.number || c.rowIndex;
         const chip = document.createElement("div");
         chip.className = `case-chip status-${status}${isDue(c.id) ? " is-due" : ""}`;
+
+        const dots = STATUS_ORDER.map(key => {
+            const m = STATUS_META[key];
+            return `<button class="chip-dot dot-${key}" data-set="${key}" title="${m.label}">${m.emoji}</button>`;
+        }).join("");
+
         chip.innerHTML = `
             <button class="chip-number" title="Öppna fall #${num}">#${num}</button>
             <div class="chip-actions">
-                <button class="chip-dot dot-green" data-set="green" title="Klarade">🟢</button>
-                <button class="chip-dot dot-red" data-set="red" title="Ej klarade — repetera senare">🔴</button>
-                <button class="chip-dot dot-blue" data-set="untested" title="Nollställ till ej testad">🔵</button>
+                ${dots}
+                <button class="chip-dot dot-untested" data-set="untested" title="Nollställ till ej testad">🔵</button>
             </div>
         `;
         chip.querySelector(".chip-number").addEventListener("click", () => openMysteryModal(c));
@@ -738,8 +826,8 @@ function setCaseStatus(caseData, newStatus) {
         delete srsData[caseData.id];
     } else {
         caseStatuses[caseData.id] = newStatus;
-        const s = scheduleCase(caseData.id, newStatus === "green");
-        logTraining(caseData, newStatus === "green", s);
+        const s = scheduleCase(caseData.id, newStatus);
+        logTraining(caseData, newStatus, s);
     }
 
     // Blått räknas som ett val precis som rött och grönt — det stämplas och sparas
@@ -820,28 +908,39 @@ function revealDiagnosis() {
     }
 }
 
-function markCaseResult(passed) {
+function markCaseResult(status) {
     if (!currentSelectedCase) return;
 
-    if (passed) {
-        caseStatuses[currentSelectedCase.id] = "green";
-        userScore += 10;
+    // Bakåtkompatibelt: äldre anrop skickade true/false
+    if (status === true) status = "green";
+    if (status === false) status = "red";
+
+    const meta = statusMeta(status);
+    caseStatuses[currentSelectedCase.id] = status;
+    userScore += meta.poang;
+
+    if (status === "green" || status === "yellow") {
         userStreak += 1;
         if (window.confetti) {
-            window.confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+            window.confetti({
+                particleCount: status === "green" ? 80 : 40,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: [meta.farg, "#ffffff"]
+            });
         }
-    } else {
-        caseStatuses[currentSelectedCase.id] = "red";
+    } else if (status === "red") {
         userStreak = 0;
     }
+    // Orange bryter inte serien, men förlänger den inte heller
 
-    const srs = scheduleCase(currentSelectedCase.id, passed);
+    const srs = scheduleCase(currentSelectedCase.id, status);
 
     stamp(currentSelectedCase.id);
     saveLocal();
 
     updateScoreUI();
-    logTraining(currentSelectedCase, passed, srs);
+    logTraining(currentSelectedCase, status, srs);
     closeMysteryModal();
     applyFilters();
     renderTimeline();
@@ -851,12 +950,16 @@ function markCaseResult(passed) {
 /* ==========================================================================
    TIDSLINJE — varje träningstillfälle sparas med tidsstämpel
    ========================================================================== */
-function logTraining(c, passed, srs) {
+function logTraining(c, status, srs) {
+    if (status === true) status = "green";
+    if (status === false) status = "red";
+
     trainingLog.unshift({
         id: c.id,
         number: c.number || c.rowIndex,
         title: c.title,
-        passed: passed,
+        status: status,
+        passed: status === "green" || status === "yellow", // behålls för äldre poster
         at: new Date().toISOString(),
         due: srs ? srs.due : null,
         reps: srs ? srs.reps : 0
@@ -893,8 +996,12 @@ function renderTimeline() {
             container.appendChild(header);
         }
 
+        // Äldre poster har bara passed — härled statusen ur den
+        const status = entry.status || (entry.passed ? "green" : "red");
+        const meta = statusMeta(status);
+
         const item = document.createElement("div");
-        item.className = `history-item timeline-item ${entry.passed ? "pass" : "fail"}`;
+        item.className = `history-item timeline-item tl-${status}`;
         item.innerHTML = `
             <div class="timeline-main">
                 <strong>#${entry.number}</strong>
@@ -902,7 +1009,7 @@ function renderTimeline() {
             </div>
             <div class="timeline-meta">
                 <span class="timeline-time">${formatStamp(entry.at)}</span>
-                <span class="timeline-result">${entry.passed ? "🟢 Klarad" : "🔴 Ej klarad"}</span>
+                <span class="timeline-result">${meta.emoji} ${meta.kort}</span>
                 ${entry.due ? `<span class="timeline-due">🔁 repetera ${formatRelative(entry.due)}</span>` : ""}
             </div>
         `;
@@ -912,4 +1019,72 @@ function renderTimeline() {
 
 function closeMysteryModal() {
     document.getElementById("modalMystery")?.classList.remove("active");
+}
+
+/* ==========================================================================
+   STATISTIK — cirkeldiagram över hur fallen fördelar sig
+   Ritas som ren SVG, inga externa bibliotek (strikt CSP).
+   ========================================================================== */
+function renderStats(counts) {
+    const chart = document.getElementById("statsChart");
+    const legend = document.getElementById("statsLegend");
+    if (!chart || !legend) return;
+
+    const segments = [
+        { key: "green", ...STATUS_META.green, antal: counts.green },
+        { key: "yellow", ...STATUS_META.yellow, antal: counts.yellow },
+        { key: "orange", ...STATUS_META.orange, antal: counts.orange },
+        { key: "red", ...STATUS_META.red, antal: counts.red },
+        { key: "untested", emoji: "🔵", label: "Ej testade", farg: "#3b82f6", antal: counts.untested }
+    ];
+
+    const total = segments.reduce((s, x) => s + x.antal, 0) || 1;
+    const testade = total - counts.untested;
+
+    // Donut via stroke-dasharray på en cirkel med omkrets 100
+    const R = 15.9154943092; // omkrets = 100
+    let offset = 25; // börja klockan 12
+    const ringar = segments
+        .filter(s => s.antal > 0)
+        .map(s => {
+            const andel = (s.antal / total) * 100;
+            const cirkel = `<circle class="stat-slice" cx="21" cy="21" r="${R}" fill="none"
+                stroke="${s.farg}" stroke-width="7"
+                stroke-dasharray="${andel.toFixed(2)} ${(100 - andel).toFixed(2)}"
+                stroke-dashoffset="${offset.toFixed(2)}"><title>${s.label}: ${s.antal}</title></circle>`;
+            offset = (offset - andel + 100) % 100;
+            return cirkel;
+        })
+        .join("");
+
+    const andelKlarade = testade
+        ? Math.round(((counts.green + counts.yellow) / testade) * 100)
+        : 0;
+
+    chart.innerHTML = `
+        <svg viewBox="0 0 42 42" class="donut" role="img" aria-label="Fördelning av fall">
+            <circle cx="21" cy="21" r="${R}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="7"></circle>
+            ${ringar}
+            <text x="21" y="20" class="donut-number">${testade}</text>
+            <text x="21" y="25" class="donut-label">av ${total}</text>
+        </svg>
+        <div class="donut-caption">${testade ? `${andelKlarade}% klarade av de tränade` : "Inga fall tränade än"}</div>
+    `;
+
+    legend.innerHTML = segments.map(s => {
+        const procent = total ? Math.round((s.antal / total) * 100) : 0;
+        return `<button class="legend-row" data-filter="${s.key}" title="Visa bara dessa på hjulet">
+            <span class="legend-dot" style="background:${s.farg}"></span>
+            <span class="legend-label">${s.label}</span>
+            <span class="legend-value">${s.antal} <span class="legend-pct">${procent}%</span></span>
+        </button>`;
+    }).join("");
+
+    legend.querySelectorAll(".legend-row").forEach(row => {
+        row.addEventListener("click", () => {
+            const key = row.getAttribute("data-filter");
+            const pill = document.querySelector(`.pill-btn[data-status="${key}"]`);
+            if (pill) pill.click();
+        });
+    });
 }

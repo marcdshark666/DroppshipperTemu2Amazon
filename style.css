@@ -716,3 +716,146 @@ input:checked + .toggle-slider:before { transform: translateX(20px); }
     background: rgba(245, 158, 11, 0.2);
     border-color: rgba(245, 158, 11, 0.6);
 }
+
+/* ==========================================================================
+   FYRA SVÅRIGHETSGRADER
+   ========================================================================== */
+.case-chip.status-green  { border-color: #10b981; }
+.case-chip.status-yellow { border-color: #eab308; }
+.case-chip.status-orange { border-color: #f97316; }
+.case-chip.status-red    { border-color: #f43f5e; }
+
+.eval-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+.btn-eval {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.88rem;
+    font-weight: 800;
+    text-align: left;
+    color: #fff;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform .12s, filter .12s;
+}
+.btn-eval small {
+    font-size: 0.68rem;
+    font-weight: 600;
+    opacity: 0.85;
+}
+.btn-eval:hover { transform: translateY(-1px); filter: brightness(1.12); }
+.btn-eval.btn-green  { background: rgba(16,185,129,0.9); }
+.btn-eval.btn-yellow { background: rgba(234,179,8,0.9); color: #422006; }
+.btn-eval.btn-orange { background: rgba(249,115,22,0.9); }
+.btn-eval.btn-red    { background: rgba(244,63,94,0.9); }
+@media (max-width: 520px) {
+    .eval-row { grid-template-columns: 1fr; }
+}
+
+.timeline-item.tl-green  { border-left-color: #10b981; }
+.timeline-item.tl-yellow { border-left-color: #eab308; }
+.timeline-item.tl-orange { border-left-color: #f97316; }
+.timeline-item.tl-red    { border-left-color: #f43f5e; }
+
+/* ==========================================================================
+   SÖK PÅ FALLNUMMER
+   ========================================================================== */
+.case-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 10px;
+}
+.case-search-row > i { opacity: 0.5; font-size: 0.8rem; }
+#caseSearch {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 4px 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: inherit;
+    background: none;
+    border: 0;
+    outline: none;
+}
+#caseSearch::-webkit-search-cancel-button { display: none; }
+.btn-clear-search {
+    flex: 0 0 auto;
+    padding: 2px 6px;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    opacity: 0.5;
+}
+.btn-clear-search:hover { opacity: 1; }
+.case-search-count {
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    font-weight: 700;
+    opacity: 0.55;
+    white-space: nowrap;
+}
+.strip-empty {
+    padding: 14px;
+    font-size: 0.8rem;
+    text-align: center;
+    opacity: 0.6;
+}
+
+/* ==========================================================================
+   STATISTIK — cirkeldiagram
+   ========================================================================== */
+.stats-panel { margin-bottom: 1.4rem; }
+.stats-chart { display: flex; flex-direction: column; align-items: center; }
+.donut { width: 100%; max-width: 168px; height: auto; }
+.stat-slice { transition: stroke-width .15s; }
+.stat-slice:hover { stroke-width: 8.5; }
+.donut-number {
+    font: 800 7px Inter, sans-serif;
+    fill: var(--text-primary);
+    text-anchor: middle;
+}
+.donut-label {
+    font: 600 3.2px Inter, sans-serif;
+    fill: var(--text-secondary);
+    text-anchor: middle;
+}
+.donut-caption {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: center;
+    opacity: 0.7;
+}
+.stats-legend { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; }
+.legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 4px 6px;
+    font-size: 0.76rem;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+}
+.legend-row:hover { background: rgba(255,255,255,0.07); }
+.legend-dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; }
+.legend-label { flex: 1 1 auto; }
+.legend-value { flex: 0 0 auto; font-weight: 800; }
+.legend-pct { font-weight: 600; opacity: 0.5; font-size: 0.68rem; }

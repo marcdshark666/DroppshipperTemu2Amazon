@@ -94,8 +94,10 @@
                 <h3><i class="fa-solid fa-filter"></i> Statusfilter</h3>
                 <div class="filter-pills">
                     <button class="pill-btn active" data-status="all">Alla (<span id="countAll">0</span>)</button>
-                    <button class="pill-btn" data-status="green">🟢 Klarade (<span id="countGreen">0</span>)</button>
-                    <button class="pill-btn" data-status="red">🔴 Ej klarade (<span id="countRed">0</span>)</button>
+                    <button class="pill-btn" data-status="green">🟢 Klarade lätt (<span id="countGreen">0</span>)</button>
+                    <button class="pill-btn" data-status="yellow">🟡 Lite svårt (<span id="countYellow">0</span>)</button>
+                    <button class="pill-btn" data-status="orange">🟠 På gränsen (<span id="countOrange">0</span>)</button>
+                    <button class="pill-btn" data-status="red">🔴 Klarade inte (<span id="countRed">0</span>)</button>
                     <button class="pill-btn" data-status="untested">🔵 Ej testade (<span id="countUntested">0</span>)</button>
                     <button class="pill-btn" data-status="due">⏰ Att repetera (<span id="countDue">0</span>)</button>
                 </div>
@@ -145,12 +147,29 @@
                 <summary class="case-strip-header">
                     <i class="fa-solid fa-list-ol"></i> Alla fall — tryck siffran för att öppna, prickarna för att färgsätta
                 </summary>
+
+                <div class="case-search-row">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="search" id="caseSearch" inputmode="numeric" autocomplete="off"
+                           placeholder="Sök fallnummer, t.ex. 112">
+                    <button class="btn-clear-search" id="btnClearSearch" title="Rensa sökningen">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    <span class="case-search-count" id="caseSearchCount"></span>
+                </div>
+
                 <div class="case-strip" id="caseStrip"></div>
             </details>
         </main>
 
         <!-- Right Side Leaderboard & History Stream -->
         <aside class="right-panel glass-panel">
+            <h3><i class="fa-solid fa-chart-pie"></i> Statistik</h3>
+            <div class="stats-panel">
+                <div class="stats-chart" id="statsChart"></div>
+                <div class="stats-legend" id="statsLegend"></div>
+            </div>
+
             <h3><i class="fa-solid fa-clock-rotate-left"></i> Träningstidslinje</h3>
             <div class="timeline-summary" id="timelineSummary"></div>
             <div class="history-list timeline" id="historyContainer">
@@ -206,11 +225,17 @@
 
                 <!-- Evaluation Buttons -->
                 <div class="eval-row" id="evalRow" style="display:none;">
-                    <button class="btn-eval btn-pass" id="btnMarkPass">
-                        <i class="fa-solid fa-circle-check"></i> Klarade (🟢 +10p)
+                    <button class="btn-eval btn-green" data-status="green">
+                        🟢 Klarade lätt<small>+10 p · om 1 dygn</small>
                     </button>
-                    <button class="btn-eval btn-fail" id="btnMarkFail">
-                        <i class="fa-solid fa-circle-xmark"></i> Ej Klarat (🔴)
+                    <button class="btn-eval btn-yellow" data-status="yellow">
+                        🟡 Lite svårt<small>+7 p · kortare intervall</small>
+                    </button>
+                    <button class="btn-eval btn-orange" data-status="orange">
+                        🟠 På gränsen<small>+3 p · om 8 timmar</small>
+                    </button>
+                    <button class="btn-eval btn-red" data-status="red">
+                        🔴 Klarade inte<small>om 10 minuter</small>
                     </button>
                 </div>
             </div>
