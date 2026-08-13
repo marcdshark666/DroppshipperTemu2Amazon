@@ -16,9 +16,11 @@ Först när användaren trycker **"Avslöja Diagnos"** visas resten
 Detta gäller Claude Code, Codex OCH Antigravity/Gemini. Återinför inte
 `modalScenarioText` eller `modalCategory` i öppningsläget.
 
-## Spaced repetition (SM-2-light)
-- 🔴 Ej klarad → tillbaka i kön om **10 minuter** (repeteras samma pass), easiness −0,2, lapses +1.
-- 🟢 Klarad → intervall 1 dygn → 3 dygn → `intervall × easiness`, easiness +0,1 (max 2,8).
+## Fyra svårighetsgrader + spaced repetition (SM-2-light)
+- 🟢 Klarade lätt → +10 p, 1 d → 3 d → `intervall × easiness`, easiness +0,1 (max 2,8).
+- 🟡 Lite svårt → +7 p, 1 d → `× 1,6`, easiness −0,05. Räknas som klarad, ökar streaken.
+- 🟠 På gränsen → +3 p, tillbaka om **8 timmar**, easiness −0,15. Bryter inte streaken men ökar den inte.
+- 🔴 Klarade inte → 0 p, tillbaka om **10 minuter**, easiness −0,2, lapses +1. Nollställer streaken.
 - 🔵 Nollställ → status och repetitionsschema raderas helt.
 - Filterpillret **⏰ Att repetera** laddar bara fall vars `due` har passerat.
 - localStorage-nycklar: `medical_wheel_statuses`, `medical_wheel_srs`,
@@ -51,9 +53,13 @@ Detta repo deployar till projektet **medicinskt-snurrhjul** och inget annat.
 kopplingen togs bort 2026-08-10. Ada har nu egen mapp `E:\CHAT-RTX\ada-zdrowa`
 med eget git-repo. Koppla ALDRIG in fler projekt mot det här repot.
 
-## Fallrad & tidslinje
-- **Fallraden** under hjulet: horisontellt scrollbar lista med alla fallnummer.
-  Tryck siffran → öppnar fallet (nolltips gäller). Prickarna 🟢/🔴/🔵 sätter status direkt.
+## Fallrad, sök, statistik & tidslinje
+- **Fallraden** under hjulet: vertikal lista med alla fallnummer.
+  Tryck siffran → öppnar fallet (nolltips gäller). Prickarna 🟢/🟡/🟠/🔴/🔵 sätter status direkt.
+- **Sökfältet** filtrerar på fallnummer och tar BARA siffror — sök aldrig i `title`,
+  det skulle avslöja diagnosen och bryta nolltips-regeln.
+- **Cirkeldiagrammet** i högerpanelen ritas som ren SVG i `renderStats()` (strikt CSP,
+  inga externa bibliotek). Teckenförklaringen klickar på motsvarande statusfilter.
 - **Tidslinjen** i högerpanelen: varje träningstillfälle sparas med tidsstämpel,
   grupperat per dag, med nästa repetitionstillfälle. Max 300 poster.
 
