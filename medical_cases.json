@@ -479,14 +479,14 @@
     "rowIndex": 42,
     "number": "42",
     "hasRedC": false,
-    "title": "Covid 19 / corona",
-    "category": "Lungor & Andning",
+    "title": "Pertussis (Kikhosta)",
+    "category": "Infektion & Immun",
     "docLink": "",
-    "akutaLink": "",
+    "akutaLink": "https://akutasjukdomar.se/kikhosta/",
     "extraLinks": [],
     "mnemonic": "",
     "notes": "",
-    "caseScenario": "Patient inkommer med kliniska symtom i linje med Covid 19 / corona inom Lungor & Andning. Utvärdera anamnes, status och lab/EKG-fynd för att ställa diagnosen."
+    "caseScenario": "Patient inkommer med kliniska symtom i linje med Pertussis (Kikhosta) inom Infektion & Immun. Utvärdera anamnes, status och lab/EKG-fynd för att ställa diagnosen."
   },
   {
     "id": "case_44",
@@ -783,5 +783,19 @@
     "mnemonic": "",
     "notes": "",
     "caseScenario": "Patient inkommer med kliniska symtom i linje med oligomenhorrea / endometrios inom Gynekologi & Reproduktion. Utvärdera anamnes, status och lab/EKG-fynd för att ställa diagnosen."
+  },
+  {
+    "id": "case_als24",
+    "rowIndex": 68,
+    "number": "ALS24",
+    "hasRedC": true,
+    "title": "LVAD-haveri (Vänsterkammarpump / Ventrikelstöd)",
+    "category": "Hjärta & Kärl",
+    "docLink": "",
+    "akutaLink": "",
+    "extraLinks": [],
+    "mnemonic": "",
+    "notes": "LVAD (Left Ventricular Assist Device) vid svår hjärtsvikt. Akut pumphaveri ger cirkulationssvikt/hjärtstopp utan pulsgivande flöde.",
+    "caseScenario": "Patient med känd svår hjärtsvikt och inopererad mekanisk vänsterkammarpump (LVAD) inkommer akut med larm från pumpstyrdonet, yrsel, profus kallsvettning och uttalad dyspné. Ni misstänker akut pumphaveri."
   }
 ]
